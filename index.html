@@ -50,9 +50,18 @@
   .hello{background:#fff;border-radius:22px;padding:16px 20px;margin-bottom:16px;font-size:18px;font-weight:700}
   /* home hero mascot + greeting */
   .home-hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin:0 0 22px}
-  .hero-cube{line-height:0}
-  .hero-cube svg{width:132px;height:auto;filter:drop-shadow(0 12px 9px rgba(0,0,0,.28));animation:floaty 3.4s ease-in-out infinite;transform-origin:50% 60%}
-  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+  .hero-cube{display:flex;flex-direction:column;align-items:center;line-height:0}
+  /* animated pure-CSS 3D cube mascot (turns a face on a loop) */
+  .hc3d-bob{animation:floaty 3.6s ease-in-out infinite}
+  @keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  .hc3d-scene{width:172px;height:150px;perspective:760px;display:flex;align-items:center;justify-content:center}
+  .hc3d-cube{position:relative;width:108px;height:108px;transform-style:preserve-3d;transform:translateZ(-30px) rotateX(-26deg) rotateY(-36deg)}
+  .hc3d-cubie{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;transform-style:preserve-3d}
+  .hc3d-face{position:absolute;width:36px;height:36px;border-radius:9px;box-sizing:border-box;border:2.5px solid #0f1122;background:#141627;
+    box-shadow:inset 0 3px 5px rgba(255,255,255,.32),inset 0 -6px 9px rgba(0,0,0,.34)}
+  .hc3d-shadow{width:112px;height:20px;margin-top:6px;border-radius:50%;
+    background:radial-gradient(50% 62% at 50% 50%,rgba(0,0,0,.32),rgba(0,0,0,0) 72%);animation:hcshadow 3.6s ease-in-out infinite}
+  @keyframes hcshadow{0%,100%{opacity:.9;transform:scaleX(1)}50%{opacity:.62;transform:scaleX(.85)}}
   .hero-bubble{margin-top:12px;background:#fff;border-radius:20px;padding:12px 22px;font-size:19px;font-weight:800;color:var(--ink);box-shadow:0 6px 0 rgba(0,0,0,.14)}
   /* faint floating cubes decorating the background */
   .bg-decor{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
@@ -1367,9 +1376,86 @@ function scPreviewHTML(){
 }
 
 /* ---------- init ---------- */
-/* home mascot + faint background cubes (reuse the Cube Guide's isometric SVG art) */
+/* home mascot: a draggable-free pure-CSS 3D cube that turns one face every few seconds,
+   then quietly undoes the turns so it keeps returning to solved. Buildless + offline.
+   Coordinates are in CSS space (x right, y DOWN, z out): up=-y white, down=+y yellow,
+   right=+x red, left=-x orange, front=+z green, back=-z blue. Each layer turn animates
+   with rotate3d() about the cube centre, then commits the identical rotation as an
+   integer matrix3d — so pieces can never drift or detach (end-of-anim == committed state). */
+const HC_S=36, HC_DARK='#141627';
+const HC_TURN_MS=430, HC_GAP_MS=1150;   /* a face spins roughly every (turn+gap) ≈ 1.6s */
+const HC_COL={'x+':'#e23b3b','x-':'#ff8a00','y-':'#f8f8f8','y+':'#ffd500','z+':'#38c66d','z-':'#2b7fff'};
+const HC_FACES=[
+  {k:'y-',t:'rotateX(90deg) translateZ(18px)',  n:[0,-1,0]},
+  {k:'y+',t:'rotateX(-90deg) translateZ(18px)', n:[0,1,0]},
+  {k:'x+',t:'rotateY(90deg) translateZ(18px)',  n:[1,0,0]},
+  {k:'x-',t:'rotateY(-90deg) translateZ(18px)', n:[-1,0,0]},
+  {k:'z+',t:'translateZ(18px)',                 n:[0,0,1]},
+  {k:'z-',t:'rotateY(180deg) translateZ(18px)', n:[0,0,-1]}
+];
+/* +90° rotations about x / y / z (standard, matching CSS rotate3d) */
+const HCX=[[1,0,0],[0,0,-1],[0,1,0]], HCY=[[0,0,1],[0,1,0],[-1,0,0]], HCZ=[[0,-1,0],[1,0,0],[0,0,1]];
+function hcTps(m){return [[m[0][0],m[1][0],m[2][0]],[m[0][1],m[1][1],m[2][1]],[m[0][2],m[1][2],m[2][2]]];}
+function hcMul(A,B){const R=[[0,0,0],[0,0,0],[0,0,0]];for(let i=0;i<3;i++)for(let j=0;j<3;j++){let s=0;for(let k=0;k<3;k++)s+=A[i][k]*B[k][j];R[i][j]=s;}return R;}
+function hcMulV(A,v){return [A[0][0]*v[0]+A[0][1]*v[1]+A[0][2]*v[2],A[1][0]*v[0]+A[1][1]*v[1]+A[1][2]*v[2],A[2][0]*v[0]+A[2][1]*v[1]+A[2][2]*v[2]];}
+function hcBase(p,R){return 'translate3d('+(p[0]*HC_S)+'px,'+(p[1]*HC_S)+'px,'+(p[2]*HC_S)+'px) '+
+  'matrix3d('+R[0][0]+','+R[1][0]+','+R[2][0]+',0,'+R[0][1]+','+R[1][1]+','+R[2][1]+',0,'+R[0][2]+','+R[1][2]+','+R[2][2]+',0,0,0,0,1)';}
+function hcBright(n){if(n[1]<0)return 1.14;if(n[1]>0)return .72;if(n[0]>0)return .93;if(n[0]<0)return .82;if(n[2]>0)return 1;return .8;}
+let hc3dCubies=[], hc3dCubeEl=null, hc3dTimer=null, hc3dPrevFace=-1;
+function hcActive(){const h=document.getElementById('home');return !!h&&h.classList.contains('active')&&document.visibilityState!=='hidden';}
+function hcBuild(){
+  hc3dCubies=[]; hc3dPrevFace=-1; if(!hc3dCubeEl)return; hc3dCubeEl.innerHTML='';
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    if(!x&&!y&&!z)continue;                         /* skip the hidden core */
+    const home=[x,y,z], el=document.createElement('div'); el.className='hc3d-cubie'; const faces=[];
+    for(const fd of HC_FACES){
+      const fe=document.createElement('div'); fe.className='hc3d-face';
+      const colored=(home[0]*fd.n[0]+home[1]*fd.n[1]+home[2]*fd.n[2])===1;   /* sticker only on exterior sides */
+      fe.style.background=colored?HC_COL[fd.k]:HC_DARK;
+      fe.style.transform=fd.t;
+      fe.style.filter='brightness('+hcBright(fd.n).toFixed(2)+')';
+      el.appendChild(fe); faces.push({el:fe,n:fd.n.slice()});
+    }
+    const R=[[1,0,0],[0,1,0],[0,0,1]];
+    el.style.transform=hcBase(home,R);
+    hc3dCubeEl.appendChild(el);
+    hc3dCubies.push({el,home,pos:home.slice(),R,faces});
+  }
+}
+function hcTurn(axis,layer,dir,dur,done){
+  const base=[HCX,HCY,HCZ][axis], Rt=dir>0?base:hcTps(base);
+  const axv=axis===0?'1,0,0':axis===1?'0,1,0':'0,0,1', ang=(dir*90)+'deg';
+  const movers=hc3dCubies.filter(c=>c.pos[axis]===layer);
+  for(const c of movers){
+    c.el.style.transition='transform '+dur+'ms cubic-bezier(.45,.05,.3,1)';
+    c.el.style.transform='rotate3d('+axv+','+ang+') '+hcBase(c.pos,c.R);   /* pivots about cube centre */
+  }
+  hc3dTimer=setTimeout(()=>{
+    for(const c of movers){                                                /* commit: bake the same rotation in */
+      c.R=hcMul(Rt,c.R); c.pos=hcMulV(Rt,c.pos);
+      for(const f of c.faces){f.n=hcMulV(Rt,f.n); f.el.style.filter='brightness('+hcBright(f.n).toFixed(2)+')';}
+      c.el.style.transition='none'; c.el.style.transform=hcBase(c.pos,c.R);
+    }
+    if(hc3dCubeEl)void hc3dCubeEl.offsetWidth;                             /* flush the no-transition swap */
+    if(done)done();
+  },dur+24);
+}
+function hcRandMove(prev){let a,l,f;do{a=(Math.random()*3)|0;l=Math.random()<0.5?-1:1;f=a*2+(l<0?0:1);}while(prev!==-1&&f===prev);return {axis:a,layer:l,dir:Math.random()<0.5?1:-1,face:f};}
+function hcStep(){                                                         /* keep spinning a different face so it steadily mixes up — never auto-undoes */
+  if(!hcActive()){hc3dTimer=setTimeout(hcStep,600);return;}               /* idle politely off-screen / hidden tab */
+  const m=hcRandMove(hc3dPrevFace); hc3dPrevFace=m.face;                  /* a fresh face each time → real scrambling, no oscillating back to solved */
+  hcTurn(m.axis,m.layer,m.dir,HC_TURN_MS,()=>{hc3dTimer=setTimeout(hcStep,HC_GAP_MS);});
+}
+/* home mascot + faint background cubes */
 function renderHomeArt(){
-  const hero=document.getElementById('heroCube'); if(hero)hero.innerHTML=cubeSVG(3);
+  const hero=document.getElementById('heroCube');
+  if(hero){
+    hero.innerHTML='<div class="hc3d-bob"><div class="hc3d-scene"><div class="hc3d-cube"></div></div></div><div class="hc3d-shadow"></div>';
+    hc3dCubeEl=hero.querySelector('.hc3d-cube');
+    hcBuild();
+    if(hc3dTimer){clearTimeout(hc3dTimer);hc3dTimer=null;}
+    hc3dTimer=setTimeout(hcStep,700);
+  }
   const bg=document.getElementById('bgDecor');
   if(bg)bg.innerHTML=[{t:'-46px',r:'-54px',w:172,rot:12},{b:'-72px',l:'-48px',w:214,rot:-10},{t:'42%',l:'-80px',w:138,rot:7},{t:'12%',r:'-62px',w:120,rot:-6}]
     .map(o=>'<div class="bc" style="'+(o.t?'top:'+o.t+';':'')+(o.b?'bottom:'+o.b+';':'')+(o.l?'left:'+o.l+';':'')+(o.r?'right:'+o.r+';':'')+'width:'+o.w+'px;transform:rotate('+o.rot+'deg)">'+cubeSVG(3)+'</div>').join('');

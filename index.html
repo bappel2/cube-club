@@ -203,6 +203,13 @@
   .sc-actionbtn.reset{background:#9aa0b8}
   .sc-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);z-index:100;background:#20233a;color:#fff;font-weight:800;font-size:17px;padding:12px 22px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
   .sc-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .cam-wrap{text-align:center}
+  .cam-box{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:8px auto;border-radius:18px;overflow:hidden;background:#111;box-shadow:0 6px 0 rgba(0,0,0,.15)}
+  .cam-box video{width:100%;height:100%;object-fit:cover;display:block}
+  .cam-grid{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr)}
+  .cam-cell{border:2px solid rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center}
+  .cam-cell i{width:44%;height:44%;border-radius:8px;box-shadow:0 0 0 2px rgba(0,0,0,.45);opacity:.92;transition:background .12s}
+  .cam-msg{background:#fff3d6;border:2px solid #ffb84d;border-radius:14px;padding:12px 14px;font-size:15px;font-weight:700;color:#7a4a00;margin:4px 0 12px;line-height:1.4}
   .sc-facewrap{max-width:300px;margin:0 auto}
   .sc-hintrow{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0}
   .sc-dot{width:22px;height:22px;border-radius:7px;border:2px solid #20233a;display:inline-block;flex-shrink:0}
@@ -396,6 +403,7 @@ const VIDEOS = [
 function go(id){
   if(document.getElementById('games').classList.contains('active') && id!=='games') stopGame();
   if(document.getElementById('videos').classList.contains('active') && id!=='videos') closeVideo();
+  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer') scCamStop();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
@@ -1132,6 +1140,7 @@ function scRender(){
   else if(scMode==='entry'){area.innerHTML=scEntryHTML();scInitCube3D();}
   else if(scMode==='solving')area.innerHTML='<div class="card" style="text-align:center"><div style="font-size:50px">🪄</div><div style="font-size:22px;font-weight:800;margin-top:8px">Figuring it out…</div></div>';
   else if(scMode==='preview'){area.innerHTML=scPreviewHTML();scInitCube3D();}
+  else if(scMode==='scan')area.innerHTML=scScanHTML();
   else if(scMode==='error')area.innerHTML=scErrorHTML(scErrMsg);
   else if(scMode==='guide'){area.innerHTML=scGuideHTML();scInitCube3D();}
 }
@@ -1161,6 +1170,84 @@ function scTabsHTML(){
   }).join('')+'</div>';
 }
 function scToast(msg){let t=document.getElementById('scToast');if(!t){t=document.createElement('div');t.id='scToast';t.className='sc-toast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('show');clearTimeout(scToast._t);scToast._t=setTimeout(function(){t.classList.remove('show');},1800);}
+/* --- camera / webcam sticker scanner: reads a side's 9 colors ON-DEVICE (no upload, no storage) --- */
+let scCamStream=null, scCamTimer=null, scCamRead=null, scCamErr='', scCamCanvas=null;
+function scRGB2HSV(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d>0){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}return [h,mx===0?0:d/mx,mx];}
+function scCubeColorFromRGB(r,g,b){                                      /* nearest cube color -> face letter (heuristic; the kid fixes any misses) */
+  const hsv=scRGB2HSV(r,g,b),h=hsv[0],s=hsv[1],v=hsv[2];
+  if(s<0.28&&v>0.5) return 'D';                                          /* white = washed-out + bright */
+  const refs=[['L',0],['R',30],['U',52],['F',135],['B',215]];           /* red, orange, yellow, green, blue (hue anchors) */
+  let best='L',bd=999;
+  for(const rf of refs){let dh=Math.abs(h-rf[1]);if(dh>180)dh=360-dh;if(dh<bd){bd=dh;best=rf[0];}}
+  return best;
+}
+function scClassify9(ctx,N){                                             /* read the 9 sticker colors from an NxN canvas context */
+  const out=[];
+  for(let r=0;r<3;r++)for(let c=0;c<3;c++){
+    const cx=Math.round((c+0.5)/3*N),cy=Math.round((r+0.5)/3*N),P=Math.max(4,Math.round(N/22));
+    const img=ctx.getImageData(cx-P,cy-P,P*2,P*2).data;
+    let R=0,G=0,B=0,n=0;for(let k=0;k<img.length;k+=4){R+=img[k];G+=img[k+1];B+=img[k+2];n++;}
+    out.push(scCubeColorFromRGB(R/n,G/n,B/n));
+  }
+  return out;
+}
+function scCamSample(){                                                  /* grab the centered square of the live frame (matches the object-fit:cover crop), classify */
+  const v=document.getElementById('scCamVideo'); if(!v||!v.videoWidth) return null;
+  const vw=v.videoWidth,vh=v.videoHeight,sq=Math.min(vw,vh),sx=(vw-sq)/2,sy=(vh-sq)/2,N=150;
+  if(!scCamCanvas){scCamCanvas=document.createElement('canvas');scCamCanvas.width=N;scCamCanvas.height=N;}
+  const ctx=scCamCanvas.getContext('2d',{willReadFrequently:true});
+  ctx.drawImage(v,sx,sy,sq,sq,0,0,N,N);
+  return scClassify9(ctx,N);
+}
+function scCamTick(){                                                    /* live: tint the 9 overlay dots with what the camera sees right now */
+  const letters=scCamSample(); if(!letters)return; scCamRead=letters;
+  for(let i=0;i<9;i++){const el=document.getElementById('scCamCell'+i);if(el)el.style.background=SCOLOR[letters[i]]||'transparent';}
+}
+function scStartCamera(){
+  scCamErr=''; scCamRead=null; scMode='scan'; scRender();
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){scCamError('nocam');return;}
+  const ok=scCamGotStream, bad=function(){scCamError('denied');};
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:640},height:{ideal:640}},audio:false})
+    .then(ok).catch(function(){navigator.mediaDevices.getUserMedia({video:true,audio:false}).then(ok).catch(bad);});
+}
+function scCamGotStream(stream){
+  if(scMode!=='scan'){stream.getTracks().forEach(function(t){t.stop();});return;}   /* user already left */
+  scCamStream=stream;
+  const v=document.getElementById('scCamVideo');
+  if(!v){stream.getTracks().forEach(function(t){t.stop();});return;}
+  v.srcObject=stream; if(v.play)v.play().catch(function(){});
+  clearInterval(scCamTimer); scCamTimer=setInterval(scCamTick,220);
+}
+function scCamError(kind){scCamErr=kind;scCamStop();scRender();}
+function scCamStop(){if(scCamStream){scCamStream.getTracks().forEach(function(t){t.stop();});scCamStream=null;}if(scCamTimer){clearInterval(scCamTimer);scCamTimer=null;}}
+function scCamCancel(){scCamStop();scMode='entry';sc3d.mode='entry';scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}
+function scCamReadFace(){
+  const letters=scCamRead||scCamSample();
+  if(!letters){scToast('📷 One sec — pointing the camera…');return;}
+  const f=FACE_ORDER[scFaceIdx];
+  for(let i=0;i<9;i++){if(i!==4)scEntry[f][i]=letters[i];}               /* keep the middle = this side's color */
+  scFixMsg=''; scCamStop();
+  scMode='entry'; sc3d.mode='entry'; scSetFaceView(scFaceIdx); scRender(); window.scrollTo(0,0);
+  scToast('📷 Read the '+SNAME[f]+' side — check it and fix any wrong squares!');
+}
+function scScanHTML(){
+  const f=FACE_ORDER[scFaceIdx];
+  if(scCamErr){
+    const msg=scCamErr==='nocam'
+      ? 'I can\'t open the camera on this page. On the <b>website</b> it works great — or just tap the colors in below! 📱'
+      : 'I couldn\'t use the camera (it might be turned off or blocked). No worries — you can tap the colors in! 🙂';
+    return '<div class="card"><div class="cam-msg">'+msg+'</div><button class="big-btn" onclick="scCamCancel()">✏️ Tap the colors instead</button></div>';
+  }
+  let cells='';for(let i=0;i<9;i++)cells+='<div class="cam-cell"><i id="scCamCell'+i+'"></i></div>';
+  return '<div class="card cam-wrap">'+
+    '<div style="font-size:18px;font-weight:800">📷 Point at the <b style="color:'+(f==='D'?'#999':SCOLOR[f])+'">'+SNAME[f]+'</b> side</div>'+
+    '<div style="font-size:14px;color:#666;font-weight:700;margin:2px 0 6px">Fill the box with one whole side. The dots show what I see — tap Read when it looks right! 🙂</div>'+
+    '<div class="cam-box"><video id="scCamVideo" autoplay playsinline muted></video><div class="cam-grid">'+cells+'</div></div>'+
+    '<div class="step-nav" style="margin-top:10px">'+
+      '<button class="big-btn alt" onclick="scCamCancel()">✕ Type instead</button>'+
+      '<button class="big-btn" onclick="scCamReadFace()">📸 Read this side</button>'+
+    '</div></div>';
+}
 function scSwatch(letter,sel){return '<button class="sc-sw'+(sel?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scPick(\''+letter+'\')" title="'+SNAME[letter]+'"></button>';}
 function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}
 function scEntryHTML(){
@@ -1196,6 +1283,7 @@ function scEntryHTML(){
    '</div>'+
    '<div class="sc-palhint">Pick a color, then tap the squares 👇</div>'+
    '<div class="sc-pal">'+pal+'</div>'+
+   '<div style="text-align:center;margin:12px 0 2px"><button class="big-btn" style="background:linear-gradient(150deg,#7a3cff,#b429f9);font-size:16px;padding:12px 18px" onclick="scStartCamera()">📷 Scan this side with camera</button></div>'+
    '<div class="step-nav">'+leftBtn+
      '<button class="big-btn" onclick="scClearFace()" style="background:#888">Clear</button>'+
      rightBtn+

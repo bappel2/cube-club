@@ -185,6 +185,16 @@
   .sc-movebig{font-size:66px;font-weight:800;letter-spacing:3px;color:#ffd500;line-height:1}
   .sc-movehelp{font-size:20px;font-weight:800;margin-top:10px}
   .sc-movecount{font-size:14px;opacity:.75;margin-top:8px;font-weight:700}
+  .sc-quickbanner{text-align:center;font-weight:800;font-size:17px;margin:10px auto;color:#fff;
+    background:linear-gradient(150deg,#7a3cff,#b429f9);border-radius:14px;padding:8px 14px;box-shadow:0 4px 12px rgba(122,60,255,.35)}
+  .sc-solvechoice{display:flex;gap:12px;margin-top:6px}
+  .sc-solvechoice .big-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.1}
+  .sc-btnsub{font-size:12px;font-weight:700;opacity:.9}
+  .big-btn.alt2{background:linear-gradient(150deg,#7a3cff,#b429f9)}
+  .sc-fixbanner{text-align:center;font-weight:800;font-size:15px;line-height:1.45;margin:2px 0 10px;color:#0a5c53;
+    background:#e6fbf7;border:2px solid #12c2b8;border-radius:14px;padding:10px 14px}
+  .sc-fixmsg{text-align:center;font-weight:800;font-size:14px;line-height:1.4;margin:2px 0 10px;color:#8a4b00;
+    background:#fff3d6;border:2px solid #ffb84d;border-radius:14px;padding:9px 13px}
 
   /* SOLVE-MY-CUBE 3D CUBE (pure CSS 3D, draggable; used in entry + preview, sizes set inline) */
   .sc3d-wrap{display:flex;flex-direction:column;align-items:center;margin:10px 0 0}
@@ -985,6 +995,74 @@ function cbSolve(state){let s=cbClone(state);const groups=[];
   groups.push({name:ph.name,moves:cbSimplify(r.seq)});s=r.s;}
  const all=groups.flatMap(g=>g.moves);return {fail:false,groups,moves:all,solved:cbSolvedQ(cbApply(cbClone(state),all))};}
 
+/* ============================================================
+   QUICK SOLVE — a near-optimal solver for LIGHTLY-scrambled cubes.
+   Iterative-deepening A* (IDA*) over the 18 half-turn moves, guided by tiny
+   pattern-database heuristics (corner twist / corner perm / edge flip / three
+   edge-quartet position tables) BFS-built once, lazily, on first use. Returns
+   the SHORTEST solution it finds (self-verified). Deep/random cubes blow past
+   the node budget and return solved:false, so the UI falls back to cbSolve.
+   Reuses the trusted MOVES / cbMult engine for every transition.  ============ */
+function qsSolved(){return {cp:[0,1,2,3,4,5,6,7],co:[0,0,0,0,0,0,0,0],ep:[0,1,2,3,4,5,6,7,8,9,10,11],eo:[0,0,0,0,0,0,0,0,0,0,0,0]};}
+const QSFACT=[1,1,2,6,24,120,720,5040];
+const QSMV=['U','D','R','L','F','B'];   /* face order for search + pruning (opposite pairs: U/D, R/L, F/B) */
+const QSE=[[0,1,2,3],[4,5,6,7],[8,9,10,11]];  /* three edge-quartets — together cover all 12 edges */
+/* --- coordinate encoders (read the relevant slice of a full cubie state) --- */
+function qsCO(s){let x=0;for(let i=0;i<7;i++)x=x*3+s.co[i];return x;}              /* corner twist 0..2186 */
+function qsEO(s){let x=0;for(let i=0;i<11;i++)x=x*2+s.eo[i];return x;}             /* edge flip    0..2047 */
+function qsCP(s){const p=s.cp;let r=0;for(let i=0;i<8;i++){let c=0;for(let j=i+1;j<8;j++)if(p[j]<p[i])c++;r=r*(8-i)+c;}return r;} /* corner perm 0..40319 */
+function qsE4(s,set){                                                              /* ordered positions of 4 edges 0..11879 */
+ const q=[0,0,0,0];for(let i=0;i<12;i++){const c=s.ep[i];for(let k=0;k<4;k++)if(c===set[k])q[k]=i;}
+ let code=0;for(let j=0;j<4;j++){let d=q[j];for(let k=0;k<j;k++)if(q[k]<q[j])d--;code=code*(12-j)+d;}return code;}
+/* --- decoders: rebuild a full state whose one coordinate == idx (rest solved) --- */
+function qsCOst(x){const co=new Array(8);let s=0;for(let i=6;i>=0;i--){co[i]=x%3;x=(x-co[i])/3;s+=co[i];}co[7]=(3-s%3)%3;const st=qsSolved();st.co=co;return st;}
+function qsEOst(x){const eo=new Array(12).fill(0);let s=0;for(let i=10;i>=0;i--){eo[i]=x%2;x=(x-eo[i])/2;s+=eo[i];}eo[11]=s%2;const st=qsSolved();st.eo=eo;return st;}
+function qsCPst(r){const avail=[0,1,2,3,4,5,6,7],cp=new Array(8);for(let i=0;i<8;i++){const f=QSFACT[7-i],d=Math.floor(r/f);r%=f;cp[i]=avail[d];avail.splice(d,1);}const st=qsSolved();st.cp=cp;return st;}
+function qsE4st(code,set){const dig=new Array(4);for(let j=3;j>=0;j--){const rad=12-j;dig[j]=code%rad;code=(code-dig[j])/rad;}
+ const avail=[0,1,2,3,4,5,6,7,8,9,10,11],pos=new Array(4);for(let j=0;j<4;j++){pos[j]=avail[dig[j]];avail.splice(dig[j],1);}
+ const ep=new Array(12).fill(-1);for(let k=0;k<4;k++)ep[pos[k]]=set[k];
+ const rest=[0,1,2,3,4,5,6,7,8,9,10,11].filter(c=>set.indexOf(c)<0);let fi=0;
+ for(let i=0;i<12;i++)if(ep[i]<0)ep[i]=rest[fi++];const st=qsSolved();st.ep=ep;return st;}
+/* BFS one coordinate's exact-distance table over the 18 HTM moves */
+function qsBFS(size,encFn,decFn){
+ const trans=[];for(let f=0;f<6;f++){const m=MOVES[QSMV[f]],t=new Int32Array(size);
+  for(let idx=0;idx<size;idx++)t[idx]=encFn(cbMult(decFn(idx),m));trans.push(t);}
+ const dist=new Uint8Array(size);dist.fill(255);const start=encFn(qsSolved());dist[start]=0;let q=[start];
+ while(q.length){const nq=[];for(const idx of q){const dn=dist[idx]+1;
+   for(let f=0;f<6;f++){let c=idx;for(let n=0;n<3;n++){c=trans[f][c];if(dist[c]===255){dist[c]=dn;nq.push(c);}}}}q=nq;}
+ return dist;}
+let qsT=null;
+function qsBuild(){if(qsT)return qsT;qsT={
+  co:qsBFS(2187,qsCO,qsCOst), eo:qsBFS(2048,qsEO,qsEOst), cp:qsBFS(40320,qsCP,qsCPst),
+  e:QSE.map(set=>qsBFS(11880,s=>qsE4(s,set),c=>qsE4st(c,set)))};return qsT;}
+/* Near-optimal solve. -> {solved:true,moves:[...]} or {solved:false} (over budget / too deep). */
+function cbQuickSolve(state,opts){
+ const T=qsBuild(),maxDepth=(opts&&opts.maxDepth)||22,budget=(opts&&opts.budget)||1200000;
+ const h=s=>Math.max(T.co[qsCO(s)],T.eo[qsEO(s)],T.cp[qsCP(s)],T.e[0][qsE4(s,QSE[0])],T.e[1][qsE4(s,QSE[1])],T.e[2][qsE4(s,QSE[2])]);
+ const tok=(f,t)=>QSMV[f]+(t===1?'':(t===2?'2':"'"));
+ const path=[];let nodes=0,abort=false;
+ function dfs(s,g,bound,pf){
+  nodes++;if(nodes>budget){abort=true;return 1e9;}
+  const hs=h(s),f=g+hs;if(f>bound)return f;
+  if(hs===0&&cbSolvedQ(s))return -1;
+  let min=1e9;
+  for(let fc=0;fc<6;fc++){
+   if(fc===pf)continue;                                 /* never the same face twice in a row */
+   if(pf>=0&&(fc>>1)===(pf>>1)&&fc<pf)continue;         /* one canonical order for an opposite pair */
+   let s1=s;const m=MOVES[QSMV[fc]];
+   for(let t=1;t<=3;t++){s1=cbMult(s1,m);path.push(tok(fc,t));
+    const r=dfs(s1,g+1,bound,fc);if(r===-1)return -1;if(r<min)min=r;path.pop();}}
+  return min;}
+ let bound=h(state);                       /* budget is CUMULATIVE across iterations, so hard cubes give up promptly */
+ while(bound<=maxDepth){
+  path.length=0;
+  const r=dfs(cbClone(state),0,bound,-1);
+  if(r===-1){const sol=cbSimplify(path.slice());
+   return cbSolvedQ(cbApply(cbClone(state),sol))?{solved:true,moves:sol,nodes:nodes}:{solved:false};}
+  if(abort)return {solved:false,budget:true};
+  if(r>=1e9)break;bound=r;}
+ return {solved:false,deep:true};}
+
 /* ---- color input UI ---- */
 const SCOLOR={U:'#ffd500',R:'#ff8a00',F:'#38c66d',D:'#f8f8f8',L:'#e23b3b',B:'#2b7fff'};
 const SNAME ={U:'Yellow',R:'Orange',F:'Green',D:'White',L:'Red',B:'Blue'};
@@ -998,10 +1076,10 @@ const MOVEHELP={
  "F":"front → turn ↻","F'":"front → turn ↺","F2":"front → half around",
  "B":"back → turn ↻","B'":"back → turn ↺","B2":"back → half around",
 };
-let scMode='intro', scFaceIdx=0, scPaintColor='D', scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null;
+let scMode='intro', scFaceIdx=0, scPaintColor='D', scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null, scQuick=false, scEditing=false, scLastMode='learn', scFixMsg='';
 function scReset(){
   scEntry={};FACE_ORDER.forEach(f=>{const a=new Array(9).fill(null);a[4]=f;scEntry[f]=a;});
-  scFaceIdx=0;scPaintColor='D';scGroups=null;scFlat=null;scMoveIdx=0;scState0=null;
+  scFaceIdx=0;scPaintColor='D';scGroups=null;scFlat=null;scMoveIdx=0;scState0=null;scQuick=false;scEditing=false;scFixMsg='';
 }
 function scEnter(){ if(!scEntry)scReset(); scRender(); }
 function scRender(){
@@ -1033,9 +1111,20 @@ function scEntryHTML(){
     grid+='<button class="sc-cell'+(cells[i]?' filled':'')+'" style="'+(col?'background:'+col:'')+'" onclick="scPaint('+i+')"></button>';
   }
   const pal=Object.keys(SCOLOR).map(l=>scSwatch(l,l===scPaintColor)).join('');
+  const allDone=FACE_ORDER.every(ff=>scEntry[ff].every(c=>c));
+  const leftBtn = scFaceIdx>0
+    ? '<button class="big-btn alt" onclick="scPrevFace()">← Back</button>'
+    : (scEditing ? '<button class="big-btn alt" onclick="scCancelFix()" style="background:#888">✕ Keep steps</button>'
+                 : '<button class="big-btn alt" onclick="scMode=\'intro\';scRender()">← Start over</button>');
+  const rightBtn = scFaceIdx<5
+    ? '<button class="big-btn" onclick="scNextFace()"'+(done?'':' disabled')+'>Next →</button>'
+    : (scEditing ? ''
+                 : '<button class="big-btn" onclick="scShowPreview()"'+(done?'':' disabled')+'>See my cube →</button>');
   return '<div class="card">'+
+   (scEditing?'<div class="sc-fixbanner">😌 No need to start over! Fix any squares that don\'t match your real cube, then tap <b>Solve again</b>.</div>':'')+
+   scFixMsgHTML()+
    scCube3DHTML(140,f)+
-   '<div class="sc3d-cap">👆 Spin it — your cube fills in as you go!</div>'+
+   '<div class="sc3d-cap">'+(scEditing?'👆 Spin it to check every side against your real cube':'👆 Spin it — your cube fills in as you go!')+'</div>'+
    '<div class="sc-progress">Side '+(scFaceIdx+1)+' of 6 &nbsp;•&nbsp; the <b style="color:'+(f==='D'?'#999':SCOLOR[f])+'">'+SNAME[f]+'</b> side (middle is '+SNAME[f]+')</div>'+
    '<div class="sc-facewrap">'+
      '<div class="sc-hintrow">'+scDot(nb[0])+'</div>'+
@@ -1044,31 +1133,59 @@ function scEntryHTML(){
    '</div>'+
    '<div class="sc-palhint">Pick a color, then tap the squares 👇</div>'+
    '<div class="sc-pal">'+pal+'</div>'+
-   '<div class="step-nav">'+
-     (scFaceIdx>0?'<button class="big-btn alt" onclick="scPrevFace()">← Back</button>':'<button class="big-btn alt" onclick="scMode=\'intro\';scRender()">← Start over</button>')+
+   '<div class="step-nav">'+leftBtn+
      '<button class="big-btn" onclick="scClearFace()" style="background:#888">Clear</button>'+
-     (scFaceIdx<5?'<button class="big-btn" onclick="scNextFace()"'+(done?'':' disabled')+'>Next →</button>'
-                 :'<button class="big-btn" onclick="scShowPreview()"'+(done?'':' disabled')+'>See my cube →</button>')+
-   '</div></div>';
+     rightBtn+
+   '</div>'+
+   (scEditing?'<button class="big-btn" style="background:linear-gradient(150deg,#38c66d,#2b7fff);width:100%;box-sizing:border-box;margin-top:10px" onclick="scSolveAgain()"'+(allDone?'':' disabled')+'>✅ Fixed it — solve again!</button>':'')+
+   '</div>';
 }
 function scPick(l){scPaintColor=l;scRender();}
-function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scRender();}
-function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scRender();}
+function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scFixMsg='';scRender();}
+function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scFixMsg='';scRender();}
 function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
 function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
-function scDoSolve(){
-  scMode='solving';scRender();
+function scDoSolve(){scStartSolve('learn');}     /* ✨ Solve it! — the teachable 7-step method */
+function scQuickSolve(){scStartSolve('quick');}  /* ⚡ Quick fix — fewest moves (falls back to learn if too twisted) */
+function scStartSolve(mode){
+  scLastMode=mode;scMode='solving';scRender();
   setTimeout(()=>{
     let str='';for(const f of ['U','R','F','D','L','B'])str+=scEntry[f].join('');
     const parsed=cbFromFacelet(str);
-    if(parsed.error){scErrMsg=scFriendlyError(parsed.error);scMode='error';scRender();return;}
-    const res=cbSolve(parsed.state);
-    if(res.fail||!res.solved){scErrMsg=scFriendlyError('hard');scMode='error';scRender();return;}
-    if(res.moves.length===0){scErrMsg='already';scMode='error';scRender();return;}
-    scState0=parsed.state;scGroups=res.groups;scFlat=[];
-    scGroups.forEach((g,gi)=>g.moves.forEach(m=>scFlat.push({m,name:g.name,gi})));
+    /* while editing mid-solve, keep the kid in the editor (with their squares) instead of a scary error */
+    if(parsed.error){ if(scEditing){scFixMsg=parsed.error;scMode='entry';scRender();return;} scErrMsg=scFriendlyError(parsed.error);scMode='error';scRender();return; }
+    if(cbSolvedQ(parsed.state)){scErrMsg='already';scMode='error';scRender();return;}
+    let flat=null,groups=null,quick=false;
+    if(mode==='quick'){
+      const q=cbQuickSolve(parsed.state);
+      if(q.solved&&q.moves.length){flat=q.moves.map(m=>({m:m}));quick=true;}  /* else: fall through to the learn method */
+    }
+    if(!flat){
+      const res=cbSolve(parsed.state);
+      if(res.fail||!res.solved){ if(scEditing){scFixMsg='hard';scMode='entry';scRender();return;} scErrMsg=scFriendlyError('hard');scMode='error';scRender();return; }
+      if(res.moves.length===0){scErrMsg='already';scMode='error';scRender();return;}
+      groups=res.groups;flat=[];groups.forEach((g,gi)=>g.moves.forEach(m=>flat.push({m,name:g.name,gi})));
+    }
+    scState0=parsed.state;scGroups=groups;scFlat=flat;scQuick=quick;scEditing=false;scFixMsg='';
     scMoveIdx=0;sc3d.mode='entry';scSetGuideView(scFlat[0].m[0]);scMode='guide';scRender();
   },40);
+}
+/* Re-open the color editor pre-filled with the cube's CURRENT state (after the moves done so far),
+   so a kid who made a wrong turn just fixes the squares that don't match and solves again. */
+function scFixHere(){
+  if(!scState0||!scFlat)return;
+  const fl=cbToFacelet(cbApply(cbClone(scState0),scFlat.slice(0,scMoveIdx).map(x=>x.m)));
+  scEntry=scFacelet2Entry(fl);
+  scEditing=true;scFixMsg='';scFaceIdx=0;scMode='entry';sc3d.mode='entry';scSetFaceView(0);scRender();window.scrollTo(0,0);
+}
+function scSolveAgain(){scStartSolve(scLastMode||'learn');}
+function scCancelFix(){scEditing=false;scFixMsg='';scMode='guide';scRender();window.scrollTo(0,0);}
+function scFixMsgHTML(){
+  if(!scFixMsg)return '';
+  const t = scFixMsg==='count'
+    ? 'Almost! Each color goes on exactly <b>9</b> squares — one is used too many or too few. Keep fixing! 🙂'
+    : 'That\'s not quite a real cube yet — double-check the squares you just changed. 🙂';
+  return '<div class="sc-fixmsg">'+t+'</div>';
 }
 function scFriendlyError(code){
   if(code==='count')return 'count';
@@ -1091,12 +1208,17 @@ function scGuideHTML(){
   const move=cur.m, face=move[0];
   const dir=move.length===1?'cw':(move[1]==='2'?'half':'ccw');
   const dispState=scFacelet2Entry(cbToFacelet(cbApply(scState0,scFlat.slice(0,scMoveIdx).map(x=>x.m))));
-  const stepsBar=scGroups.map((g,i)=>'<span class="sc-stepchip'+(i===cur.gi?' on':'')+'">'+(i+1)+'</span>').join('');
+  let header;
+  if(scQuick){
+    header='<div class="sc-quickbanner">⚡ Quick fix — just '+total+' move'+(total===1?'':'s')+'!</div>';
+  }else{
+    const stepsBar=scGroups.map((g,i)=>'<span class="sc-stepchip'+(i===cur.gi?' on':'')+'">'+(i+1)+'</span>').join('');
+    header='<div class="sc-steps">'+stepsBar+'</div><div class="sc-stepname">Step '+(cur.gi+1)+': '+cur.name+'</div>';
+  }
   const pct=Math.round(scMoveIdx/total*100);
   return '<div class="card">'+
    '<div style="text-align:center;font-weight:800;color:#666;font-size:14px">Hold your cube: <b>WHITE down</b>, <b>GREEN front</b> 🟢</div>'+
-   '<div class="sc-steps">'+stepsBar+'</div>'+
-   '<div class="sc-stepname">Step '+(cur.gi+1)+': '+cur.name+'</div>'+
+   header+
    scCube3DHTML(178,face,dispState,{face:face,dir:dir})+
    '<div class="sc-movebox" style="padding:12px 12px 14px">'+
      '<div class="sc-movebig" style="font-size:40px">'+move+'</div>'+
@@ -1109,7 +1231,10 @@ function scGuideHTML(){
      (scMoveIdx<total-1?'<button class="big-btn" onclick="scMove(1)">Next →</button>'
                        :'<button class="big-btn" onclick="scFinish()">🎉 Done!</button>')+
    '</div>'+
-   '<div style="text-align:center;margin-top:10px"><button class="big-btn" style="background:#888;font-size:15px;padding:8px 14px" onclick="scBegin()">↺ Enter a different cube</button></div>'+
+   '<div style="text-align:center;margin-top:12px">'+
+     '<button class="big-btn" style="background:linear-gradient(150deg,#ff9500,#ff5a5f);font-size:15px;padding:10px 18px" onclick="scFixHere()">😕 My cube looks different</button>'+
+     '<div style="margin-top:8px"><button class="big-btn" style="background:#888;font-size:14px;padding:7px 12px" onclick="scBegin()">↺ Start a new cube</button></div>'+
+   '</div>'+
    '</div>';
 }
 function scMove(d){scMoveIdx=Math.max(0,Math.min(scFlat.length-1,scMoveIdx+d));sc3d.mode='entry';scSetGuideView(scFlat[scMoveIdx].m[0]);scRender();window.scrollTo(0,0);}
@@ -1217,9 +1342,12 @@ function scPreviewHTML(){
     '<div style="text-align:center;font-size:15px;color:#555;font-weight:700;margin:4px 0 2px">Give it a spin and check it matches your real cube.</div>'+
     scCube3DHTML(240,null)+
     '<div class="sc3d-hintwrap"><span class="sc3d-hint" id="sc3dHint">👆 Drag to spin it!</span></div>'+
-    '<div class="step-nav">'+
+    '<div class="sc-solvechoice">'+
+      '<button class="big-btn" onclick="scDoSolve()">✨ Solve it!<span class="sc-btnsub">learn the steps</span></button>'+
+      '<button class="big-btn alt2" onclick="scQuickSolve()">⚡ Quick fix<span class="sc-btnsub">fewest moves</span></button>'+
+    '</div>'+
+    '<div class="step-nav" style="margin-top:10px">'+
       '<button class="big-btn alt" onclick="scBackToEntry()">← Fix a side</button>'+
-      '<button class="big-btn" onclick="scDoSolve()">✨ Solve it!</button>'+
     '</div></div>';
 }
 

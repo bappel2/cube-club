@@ -186,24 +186,26 @@
   .sc-movehelp{font-size:20px;font-weight:800;margin-top:10px}
   .sc-movecount{font-size:14px;opacity:.75;margin-top:8px;font-weight:700}
 
-  /* SOLVE-MY-CUBE 3D PREVIEW (pure CSS 3D, draggable) */
-  .sc3d-wrap{display:flex;flex-direction:column;align-items:center;margin:12px 0 0}
-  .sc3d-stage{width:240px;height:240px;perspective:820px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  /* SOLVE-MY-CUBE 3D CUBE (pure CSS 3D, draggable; used in entry + preview, sizes set inline) */
+  .sc3d-wrap{display:flex;flex-direction:column;align-items:center;margin:10px 0 0}
+  .sc3d-stage{touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
   .sc3d-stage:active{cursor:grabbing}
-  .sc3d-cube{position:relative;width:240px;height:240px;transform-style:preserve-3d;will-change:transform}
-  .sc3d-face{position:absolute;width:180px;height:180px;left:30px;top:30px;display:grid;
-    grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:7px;padding:8px;
+  .sc3d-cube{position:relative;transform-style:preserve-3d;will-change:transform}
+  .sc3d-face{position:absolute;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
     background:#141627;border-radius:9px;box-sizing:border-box}
   .sc3d-face.f-U{filter:brightness(1.12)}
   .sc3d-face.f-R{filter:brightness(.9)}
   .sc3d-face.f-L{filter:brightness(.84)}
   .sc3d-face.f-B{filter:brightness(.8)}
   .sc3d-face.f-D{filter:brightness(.74)}
+  .sc3d-face.cur{box-shadow:0 0 0 3px #2fe0cf,0 0 16px 3px rgba(47,224,207,.7);z-index:1}
   .sc3d-cell{border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:800;color:rgba(0,0,0,.55);
     box-shadow:inset 0 3px 5px rgba(255,255,255,.4),inset 0 -5px 8px rgba(0,0,0,.3),inset 0 0 0 1px rgba(0,0,0,.32)}
-  .sc3d-cube.debug .sc3d-cell{font-size:15px}
-  .sc3d-shadow{width:196px;height:30px;margin:6px auto 2px;border-radius:50%;
-    background:radial-gradient(ellipse at center,rgba(0,0,0,.32),rgba(0,0,0,0) 70%);filter:blur(2px)}
+  .sc3d-cell.empty{background:#2b2f49;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),inset 0 2px 5px rgba(0,0,0,.5)}
+  .sc3d-cube.debug .sc3d-cell{font-size:14px}
+  .sc3d-shadow{height:26px;margin:8px auto 2px;border-radius:50%;
+    background:radial-gradient(ellipse at center,rgba(0,0,0,.3),rgba(0,0,0,0) 70%);filter:blur(2px)}
+  .sc3d-cap{text-align:center;font-size:13px;color:#888;font-weight:700;margin:4px 0 0}
   .sc3d-hintwrap{text-align:center;margin:6px 0 10px}
   .sc3d-hint{display:inline-block;font-weight:800;color:#0a6b5f;background:#e6fbf7;border:2px dashed #12c2b8;
     border-radius:12px;padding:7px 12px;font-size:14px}
@@ -989,7 +991,7 @@ function scEnter(){ if(!scEntry)scReset(); scRender(); }
 function scRender(){
   const area=document.getElementById('scArea');
   if(scMode==='intro')area.innerHTML=scIntroHTML();
-  else if(scMode==='entry')area.innerHTML=scEntryHTML();
+  else if(scMode==='entry'){area.innerHTML=scEntryHTML();scInitCube3D();}
   else if(scMode==='solving')area.innerHTML='<div class="card" style="text-align:center"><div style="font-size:50px">🪄</div><div style="font-size:22px;font-weight:800;margin-top:8px">Figuring it out…</div></div>';
   else if(scMode==='preview'){area.innerHTML=scPreviewHTML();scInitCube3D();}
   else if(scMode==='error')area.innerHTML=scErrorHTML(scErrMsg);
@@ -1002,7 +1004,7 @@ function scIntroHTML(){
    '<div style="margin-top:16px"><button class="big-btn" onclick="scBegin()">📷 Start entering my cube</button></div>'+
    '</div>';
 }
-function scBegin(){ scReset(); scMode='entry'; scRender(); }
+function scBegin(){ scReset(); scMode='entry'; sc3d.mode='entry'; scSetFaceView(0); scRender(); }
 function scSwatch(letter,sel){return '<button class="sc-sw'+(sel?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scPick(\''+letter+'\')" title="'+SNAME[letter]+'"></button>';}
 function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}
 function scEntryHTML(){
@@ -1016,6 +1018,8 @@ function scEntryHTML(){
   }
   const pal=Object.keys(SCOLOR).map(l=>scSwatch(l,l===scPaintColor)).join('');
   return '<div class="card">'+
+   scCube3DHTML(140,f)+
+   '<div class="sc3d-cap">👆 Spin it — your cube fills in as you go!</div>'+
    '<div class="sc-progress">Side '+(scFaceIdx+1)+' of 6 &nbsp;•&nbsp; the <b style="color:'+(f==='D'?'#999':SCOLOR[f])+'">'+SNAME[f]+'</b> side (middle is '+SNAME[f]+')</div>'+
    '<div class="sc-facewrap">'+
      '<div class="sc-hintrow">'+scDot(nb[0])+'</div>'+
@@ -1034,8 +1038,8 @@ function scEntryHTML(){
 function scPick(l){scPaintColor=l;scRender();}
 function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scRender();}
 function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scRender();}
-function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scRender();window.scrollTo(0,0);}}
-function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scRender();window.scrollTo(0,0);}}
+function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
+function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
 function scDoSolve(){
   scMode='solving';scRender();
   setTimeout(()=>{
@@ -1092,65 +1096,89 @@ function scGuideHTML(){
 function scMove(d){scMoveIdx=Math.max(0,Math.min(scFlat.length-1,scMoveIdx+d));scRender();window.scrollTo(0,0);}
 function scFinish(){celebrate('🎉','CUBE SOLVED!','You followed every step!');scMode='intro';scRender();}
 
-/* ---- 3D cube preview: draggable pure-CSS 3D cube built from the entered colors ----
-   Each of the 6 face panels is a 3x3 CSS grid. With the standard cube-face transforms
-   below, the painted sticker order (from the neighbor-hinted entry) maps straight onto
-   each panel — verified face-by-face: every side's stickers land on the correct edge. */
+/* ---- 3D cube: a draggable pure-CSS 3D cube built live from the entered colors ----
+   Used both while entering (small, fills in as you paint, auto-turns to the current
+   side) and in the final preview (bigger). The 6 face panels use the standard cube-
+   face rotations (below) + a size-based translateZ; painted sticker order maps straight
+   on (identity) — verified face-by-face that every side lands on the correct edge. */
 const C3D=[
-  {f:'F',t:'translateZ(90px)'},
-  {f:'B',t:'rotateY(180deg) translateZ(90px)'},
-  {f:'R',t:'rotateY(90deg) translateZ(90px)'},
-  {f:'L',t:'rotateY(-90deg) translateZ(90px)'},
-  {f:'U',t:'rotateX(90deg) translateZ(90px)'},
-  {f:'D',t:'rotateX(-90deg) translateZ(90px)'},
+  {f:'F',r:''},
+  {f:'B',r:'rotateY(180deg) '},
+  {f:'R',r:'rotateY(90deg) '},
+  {f:'L',r:'rotateY(-90deg) '},
+  {f:'U',r:'rotateX(90deg) '},
+  {f:'D',r:'rotateX(-90deg) '},
 ];
-function scCube3DHTML(){
+/* a nice iso angle [rx,ry] that brings each face to the front (auto-turn during entry) */
+const C3D_VIEW={U:[-62,-26],F:[-20,-30],R:[-18,-62],B:[-18,150],L:[-18,62],D:[62,-26]};
+function scCube3DHTML(size,curFace){
+  size=size||240;
+  const face=Math.round(size*0.75), off=(size-face)/2, tz=(face/2).toFixed(1);
+  const gap=Math.max(4,Math.round(face*0.045)), pad=Math.max(5,Math.round(face*0.05));
   let faces='';
   for(const F of C3D){
-    const cells=scEntry[F.f];
-    let grid='';
-    for(let i=0;i<9;i++) grid+='<div class="sc3d-cell" style="background:'+SCOLOR[cells[i]]+'">'+(window.SC3D_DEBUG?i:'')+'</div>';
-    faces+='<div class="sc3d-face f-'+F.f+'" style="transform:'+F.t+'">'+grid+'</div>';
+    const cells=scEntry[F.f]; let grid='';
+    for(let i=0;i<9;i++){
+      const filled=!!cells[i];
+      grid+='<div class="sc3d-cell'+(filled?'':' empty')+'"'+(filled?' style="background:'+SCOLOR[cells[i]]+'"':'')+'>'+(window.SC3D_DEBUG?i:'')+'</div>';
+    }
+    faces+='<div class="sc3d-face f-'+F.f+(curFace===F.f?' cur':'')+'" style="width:'+face+'px;height:'+face+'px;left:'+off+'px;top:'+off+'px;gap:'+gap+'px;padding:'+pad+'px;transform:'+F.r+'translateZ('+tz+'px)">'+grid+'</div>';
   }
   return '<div class="sc3d-wrap">'+
-    '<div class="sc3d-stage" id="sc3dStage"><div class="sc3d-cube'+(window.SC3D_DEBUG?' debug':'')+'" id="sc3dCube">'+faces+'</div></div>'+
-    '<div class="sc3d-shadow"></div></div>'+
-    '<div class="sc3d-hintwrap"><span class="sc3d-hint" id="sc3dHint">👆 Drag to spin it!</span></div>';
+    '<div class="sc3d-stage" id="sc3dStage" style="width:'+size+'px;height:'+size+'px;perspective:'+Math.round(size*3.4)+'px">'+
+      '<div class="sc3d-cube'+(window.SC3D_DEBUG?' debug':'')+'" id="sc3dCube" style="width:'+size+'px;height:'+size+'px">'+faces+'</div>'+
+    '</div>'+
+    '<div class="sc3d-shadow" style="width:'+Math.round(size*0.8)+'px"></div></div>';
 }
-let sc3d={rx:-24,ry:-32,vx:0,vy:0,drag:false,px:0,py:0,idle:0,raf:0};
+let sc3d={rx:-20,ry:-30,vx:0,vy:0,drag:false,px:0,py:0,idle:0,raf:0,tgx:null,tgy:null,mode:'entry'};
+function scSetFaceView(idx){                                            // turn the cube to show side idx
+  const v=C3D_VIEW[FACE_ORDER[idx]]; if(!v)return;
+  sc3d.tgx=v[0]; sc3d.tgy=v[1];
+  if(!sc3d.raf && document.getElementById('sc3dCube')) sc3d.raf=requestAnimationFrame(sc3dTick);
+}
 function scInitCube3D(){
   const stage=document.getElementById('sc3dStage'), cube=document.getElementById('sc3dCube');
-  if(!stage||!cube)return;
-  sc3d.rx=-24;sc3d.ry=-32;sc3d.vx=0;sc3d.vy=0;sc3d.drag=false;sc3d.idle=0;
+  if(!stage||!cube)return;                                             // keeps sc3d.rx/ry across re-renders
   const apply=()=>cube.style.transform='rotateX('+sc3d.rx.toFixed(2)+'deg) rotateY('+sc3d.ry.toFixed(2)+'deg)';
   apply();
   const P=e=>({x:e.clientX,y:e.clientY});
-  stage.onpointerdown=e=>{sc3d.drag=true;sc3d.idle=0;sc3d.vx=0;sc3d.vy=0;const p=P(e);sc3d.px=p.x;sc3d.py=p.y;
+  stage.onpointerdown=e=>{sc3d.drag=true;sc3d.vx=0;sc3d.vy=0;sc3d.tgx=sc3d.tgy=null;const p=P(e);sc3d.px=p.x;sc3d.py=p.y;
     try{stage.setPointerCapture(e.pointerId);}catch(_){}
-    const h=document.getElementById('sc3dHint');if(h)h.style.display='none';};
+    const h=document.getElementById('sc3dHint');if(h)h.style.display='none';
+    if(!sc3d.raf)sc3d.raf=requestAnimationFrame(sc3dTick);};
   stage.onpointermove=e=>{if(!sc3d.drag)return;const p=P(e);const dx=p.x-sc3d.px,dy=p.y-sc3d.py;sc3d.px=p.x;sc3d.py=p.y;
     sc3d.ry+=dx*0.5;sc3d.rx-=dy*0.5;sc3d.vx=dx*0.5;sc3d.vy=dy*0.5;apply();};
-  stage.onpointerup=stage.onpointercancel=()=>{sc3d.drag=false;};
+  stage.onpointerup=stage.onpointercancel=()=>{sc3d.drag=false;if(!sc3d.raf)sc3d.raf=requestAnimationFrame(sc3dTick);};
   if(!sc3d.raf)sc3d.raf=requestAnimationFrame(sc3dTick);
 }
 function sc3dTick(){
   const cube=document.getElementById('sc3dCube');
   if(!cube||!cube.isConnected||!document.getElementById('fixer').classList.contains('active')){sc3d.raf=0;return;}
-  if(!sc3d.drag){
-    if(Math.abs(sc3d.vx)>0.03||Math.abs(sc3d.vy)>0.03){                 // spin momentum after a flick
-      sc3d.ry+=sc3d.vx;sc3d.rx-=sc3d.vy;sc3d.vx*=0.95;sc3d.vy*=0.95;sc3d.idle=0;
-    }else{sc3d.idle++;if(sc3d.idle>70)sc3d.ry+=0.2;}                     // gentle idle turntable
-    cube.style.transform='rotateX('+sc3d.rx.toFixed(2)+'deg) rotateY('+sc3d.ry.toFixed(2)+'deg)';
+  let moved=false;
+  if(sc3d.drag){ moved=true; }
+  else if(Math.abs(sc3d.vx)>0.05||Math.abs(sc3d.vy)>0.05){             // flick momentum
+    sc3d.ry+=sc3d.vx;sc3d.rx-=sc3d.vy;sc3d.vx*=0.94;sc3d.vy*=0.94;moved=true;
+  }else if(sc3d.tgx!=null){                                            // ease to a face view
+    let dry=sc3d.tgy-sc3d.ry; dry=((dry+180)%360+360)%360-180;
+    const drx=sc3d.tgx-sc3d.rx;
+    if(Math.abs(dry)<0.4&&Math.abs(drx)<0.4){sc3d.rx=sc3d.tgx;sc3d.ry=sc3d.tgy;sc3d.tgx=sc3d.tgy=null;}
+    else{sc3d.rx+=drx*0.18;sc3d.ry+=dry*0.18;}
+    moved=true;
+  }else if(sc3d.mode==='preview'){                                     // gentle idle turntable (preview only)
+    sc3d.idle++;if(sc3d.idle>60){sc3d.ry+=0.2;moved=true;}
   }
+  if(moved && !sc3d.drag) cube.style.transform='rotateX('+sc3d.rx.toFixed(2)+'deg) rotateY('+sc3d.ry.toFixed(2)+'deg)';
+  if(!moved && sc3d.mode!=='preview'){sc3d.raf=0;return;}              // sleep when settled (entry)
   sc3d.raf=requestAnimationFrame(sc3dTick);
 }
-function scShowPreview(){scMode='preview';scRender();window.scrollTo(0,0);}
-function scBackToEntry(){scMode='entry';scFaceIdx=0;scRender();window.scrollTo(0,0);}
+function scShowPreview(){sc3d.mode='preview';sc3d.tgx=sc3d.tgy=null;sc3d.rx=-22;sc3d.ry=-34;sc3d.idle=0;scMode='preview';scRender();window.scrollTo(0,0);}
+function scBackToEntry(){sc3d.mode='entry';scMode='entry';scFaceIdx=0;scSetFaceView(0);scRender();window.scrollTo(0,0);}
 function scPreviewHTML(){
   return '<div class="card">'+
     '<div style="text-align:center;font-size:21px;font-weight:800">🎉 Here\'s your cube!</div>'+
     '<div style="text-align:center;font-size:15px;color:#555;font-weight:700;margin:4px 0 2px">Give it a spin and check it matches your real cube.</div>'+
-    scCube3DHTML()+
+    scCube3DHTML(240,null)+
+    '<div class="sc3d-hintwrap"><span class="sc3d-hint" id="sc3dHint">👆 Drag to spin it!</span></div>'+
     '<div class="step-nav">'+
       '<button class="big-btn alt" onclick="scBackToEntry()">← Fix a side</button>'+
       '<button class="big-btn" onclick="scDoSolve()">✨ Solve it!</button>'+

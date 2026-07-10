@@ -49,7 +49,7 @@
   .tile.fixer{background:linear-gradient(150deg,#00c2a8,#12a5c2)}
   .hello{background:#fff;border-radius:22px;padding:16px 20px;margin-bottom:16px;font-size:18px;font-weight:700}
   /* home hero mascot + greeting */
-  .home-hero{display:flex;flex-direction:column;align-items:center;text-align:center;margin:0 0 22px}
+  .home-hero{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;margin:0 0 22px}
   .hero-cube{display:flex;flex-direction:column;align-items:center;line-height:0}
   /* animated pure-CSS 3D cube mascot (turns a face on a loop) */
   .hc3d-bob{animation:floaty 3.6s ease-in-out infinite}
@@ -62,6 +62,14 @@
   .hc3d-shadow{width:112px;height:20px;margin-top:6px;border-radius:50%;
     background:radial-gradient(50% 62% at 50% 50%,rgba(0,0,0,.32),rgba(0,0,0,0) 72%);animation:hcshadow 3.6s ease-in-out infinite}
   @keyframes hcshadow{0%,100%{opacity:.9;transform:scaleX(1)}50%{opacity:.62;transform:scaleX(.85)}}
+  /* mascot celebration fireworks (fired when the cube solves itself) */
+  .hc-fw{position:absolute;inset:-30px 0 0 0;pointer-events:none;overflow:visible;z-index:6}
+  .hc-fw-p{position:absolute;width:8px;height:8px;border-radius:50%;opacity:0;box-shadow:0 0 6px 1px rgba(255,255,255,.55);animation:hcfwburst 1s ease-out forwards}
+  @keyframes hcfwburst{0%{transform:translate(-50%,-50%) scale(.5);opacity:1}
+    15%{transform:translate(calc(-50% + var(--dx)*.28),calc(-50% + var(--dy)*.28)) scale(1);opacity:1}
+    100%{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(.3);opacity:0}}
+  .hc-fw-flash{position:absolute;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle,#fff,rgba(255,255,255,0) 70%);transform:translate(-50%,-50%) scale(0);opacity:0;animation:hcfwflash .5s ease-out forwards}
+  @keyframes hcfwflash{0%{transform:translate(-50%,-50%) scale(0);opacity:1}100%{transform:translate(-50%,-50%) scale(3.6);opacity:0}}
   .hero-bubble{margin-top:12px;background:#fff;border-radius:20px;padding:12px 22px;font-size:19px;font-weight:800;color:var(--ink);box-shadow:0 6px 0 rgba(0,0,0,.14)}
   /* faint floating cubes decorating the background */
   .bg-decor{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
@@ -258,6 +266,7 @@
     <div class="home-hero">
       <div class="hero-cube" id="heroCube"></div>
       <div class="hero-bubble">Hi! What do you want to do today? 🎉</div>
+      <div class="hc-fw" id="hcFw"></div>
     </div>
     <div class="menu">
       <button class="tile solve" onclick="go('solve')"><span class="emoji">🧠</span>Learn to Solve</button>
@@ -1383,7 +1392,8 @@ function scPreviewHTML(){
    with rotate3d() about the cube centre, then commits the identical rotation as an
    integer matrix3d — so pieces can never drift or detach (end-of-anim == committed state). */
 const HC_S=36, HC_DARK='#141627';
-const HC_TURN_MS=430, HC_GAP_MS=1150;   /* a face spins roughly every (turn+gap) ≈ 1.6s */
+const HC_TURN_MS=430, HC_GAP_MS=1150;              /* scramble pace: a face spins every (turn+gap) ≈ 1.6s */
+const HC_SOLVE_TURN_MS=250, HC_SOLVE_GAP_MS=140;   /* solve pace: a quicker, satisfying unscramble ≈ 0.4s/turn */
 const HC_COL={'x+':'#e23b3b','x-':'#ff8a00','y-':'#f8f8f8','y+':'#ffd500','z+':'#38c66d','z-':'#2b7fff'};
 const HC_FACES=[
   {k:'y-',t:'rotateX(90deg) translateZ(18px)',  n:[0,-1,0]},
@@ -1401,10 +1411,10 @@ function hcMulV(A,v){return [A[0][0]*v[0]+A[0][1]*v[1]+A[0][2]*v[2],A[1][0]*v[0]
 function hcBase(p,R){return 'translate3d('+(p[0]*HC_S)+'px,'+(p[1]*HC_S)+'px,'+(p[2]*HC_S)+'px) '+
   'matrix3d('+R[0][0]+','+R[1][0]+','+R[2][0]+',0,'+R[0][1]+','+R[1][1]+','+R[2][1]+',0,'+R[0][2]+','+R[1][2]+','+R[2][2]+',0,0,0,0,1)';}
 function hcBright(n){if(n[1]<0)return 1.14;if(n[1]>0)return .72;if(n[0]>0)return .93;if(n[0]<0)return .82;if(n[2]>0)return 1;return .8;}
-let hc3dCubies=[], hc3dCubeEl=null, hc3dTimer=null, hc3dPrevFace=-1;
+let hc3dCubies=[], hc3dCubeEl=null, hc3dTimer=null, hc3dPrevFace=-1, hc3dPhase='scramble', hc3dHistory=[], hc3dScrambleTarget=37;
 function hcActive(){const h=document.getElementById('home');return !!h&&h.classList.contains('active')&&document.visibilityState!=='hidden';}
 function hcBuild(){
-  hc3dCubies=[]; hc3dPrevFace=-1; if(!hc3dCubeEl)return; hc3dCubeEl.innerHTML='';
+  hc3dCubies=[]; hc3dPrevFace=-1; hc3dPhase='scramble'; hc3dHistory=[]; hcNewScrambleTarget(); if(!hc3dCubeEl)return; hc3dCubeEl.innerHTML='';
   for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
     if(!x&&!y&&!z)continue;                         /* skip the hidden core */
     const home=[x,y,z], el=document.createElement('div'); el.className='hc3d-cubie'; const faces=[];
@@ -1441,10 +1451,48 @@ function hcTurn(axis,layer,dir,dur,done){
   },dur+24);
 }
 function hcRandMove(prev){let a,l,f;do{a=(Math.random()*3)|0;l=Math.random()<0.5?-1:1;f=a*2+(l<0?0:1);}while(prev!==-1&&f===prev);return {axis:a,layer:l,dir:Math.random()<0.5?1:-1,face:f};}
-function hcStep(){                                                         /* keep spinning a different face so it steadily mixes up — never auto-undoes */
+function hcNewScrambleTarget(){ hc3dScrambleTarget = 34 + ((Math.random()*8)|0); }   /* ~34–41 turns ≈ about a minute at ~1.6s each */
+function hcStep(){
   if(!hcActive()){hc3dTimer=setTimeout(hcStep,600);return;}               /* idle politely off-screen / hidden tab */
-  const m=hcRandMove(hc3dPrevFace); hc3dPrevFace=m.face;                  /* a fresh face each time → real scrambling, no oscillating back to solved */
-  hcTurn(m.axis,m.layer,m.dir,HC_TURN_MS,()=>{hc3dTimer=setTimeout(hcStep,HC_GAP_MS);});
+  if(hc3dPhase==='solve'){                                                /* replay the scramble backwards until solved, then celebrate */
+    if(!hc3dHistory.length){
+      hcCelebrate();                                                      /* fireworks on the finished cube */
+      hc3dPhase='scramble'; hc3dPrevFace=-1; hcNewScrambleTarget();
+      hc3dTimer=setTimeout(hcStep,1900); return;                          /* let the fireworks breathe, then mix again */
+    }
+    const mv=hc3dHistory.pop();
+    hcTurn(mv.axis,mv.layer,-mv.dir,HC_SOLVE_TURN_MS,()=>{hc3dTimer=setTimeout(hcStep,HC_SOLVE_GAP_MS);});
+    return;
+  }
+  const m=hcRandMove(hc3dPrevFace); hc3dPrevFace=m.face; hc3dHistory.push(m);   /* record each turn so the solve is exact */
+  hcTurn(m.axis,m.layer,m.dir,HC_TURN_MS,()=>{
+    if(hc3dHistory.length>=hc3dScrambleTarget) hc3dPhase='solve';         /* ~1 min of scrambling → start solving itself */
+    hc3dTimer=setTimeout(hcStep,HC_GAP_MS);
+  });
+}
+function hcCelebrate(){                                                    /* radial-burst fireworks, centred on the cube + flanking both sides (no modal, no sound) */
+  const fw=document.getElementById('hcFw'); if(!fw)return;
+  const COLORS=['#e23b3b','#ff8a00','#ffd500','#38c66d','#2b7fff','#a15cff','#ff5ca8','#ffffff'];
+  const SPOTS=[{x:0,y:14},{x:-62,y:24},{x:62,y:24},{x:-32,y:7},{x:32,y:7}];  /* px offsets from the cube's centre → symmetric both sides */
+  SPOTS.forEach((sp,b)=>{
+    setTimeout(()=>{
+      if(!hcActive())return;                                              /* don't pile up bursts if they left */
+      const ox=sp.x+(Math.random()*12-6);
+      const left='calc(50% '+(ox<0?'- '+(-ox).toFixed(1):'+ '+ox.toFixed(1))+'px)', top=(sp.y+(Math.random()*8-4)).toFixed(1)+'%';
+      const fl=document.createElement('div'); fl.className='hc-fw-flash'; fl.style.left=left; fl.style.top=top;
+      fw.appendChild(fl); setTimeout(()=>fl.remove(),520);
+      for(let i=0;i<14;i++){
+        const p=document.createElement('div'); p.className='hc-fw-p';
+        const ang=(i/14)*6.283+Math.random()*0.3, r=40+Math.random()*44;
+        p.style.left=left; p.style.top=top;
+        p.style.background=COLORS[(Math.random()*COLORS.length)|0];
+        p.style.setProperty('--dx',(Math.cos(ang)*r).toFixed(1)+'px');
+        p.style.setProperty('--dy',(Math.sin(ang)*r+26).toFixed(1)+'px'); /* +gravity bias so they arc down */
+        p.style.animationDelay=((Math.random()*40)|0)+'ms';
+        fw.appendChild(p); setTimeout(()=>p.remove(),1140);
+      }
+    }, b*240);
+  });
 }
 /* home mascot + faint background cubes */
 function renderHomeArt(){

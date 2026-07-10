@@ -45,6 +45,7 @@
   .tile.videos{background:linear-gradient(150deg,#2b7fff,#6a5cff)}
   .tile.trophy{background:linear-gradient(150deg,#ffb300,#ff7a00);color:#5a3d00}
   .tile.games{background:linear-gradient(150deg,#ff5ca8,#a15cff)}
+  .tile.fixer{background:linear-gradient(150deg,#00c2a8,#12a5c2)}
   .hello{background:#fff;border-radius:22px;padding:16px 20px;margin-bottom:16px;font-size:18px;font-weight:700}
 
   .card{background:#fff;border-radius:22px;padding:20px;box-shadow:0 8px 0 rgba(0,0,0,.12);margin-bottom:16px}
@@ -153,6 +154,32 @@
   .pop-tile:active{transform:translateY(2px)}
   .timebar{height:14px;background:#e6e8f5;border-radius:8px;overflow:hidden;margin:12px auto;max-width:360px}
   .timebar > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#38c66d,#e23b3b);transition:width .1s linear}
+
+  /* SOLVE MY CUBE */
+  .sc-tip{background:#e6fbf7;border:2px dashed #12c2b8;border-radius:14px;padding:12px 14px;font-size:14px;
+    color:#0a6b5f;line-height:1.5;margin-top:14px;font-weight:700}
+  .sc-progress{text-align:center;font-weight:800;color:#555;font-size:15px;margin-bottom:10px}
+  .sc-facewrap{max-width:300px;margin:0 auto}
+  .sc-hintrow{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0}
+  .sc-dot{width:22px;height:22px;border-radius:7px;border:2px solid #20233a;display:inline-block;flex-shrink:0}
+  .sc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:222px;height:222px}
+  .sc-cell{border-radius:11px;border:3px solid #cfd4ea;background:#eef0fb;cursor:pointer;padding:0}
+  .sc-cell.filled{border-color:#20233a}
+  .sc-cell:active{transform:scale(.94)}
+  .sc-center{border-radius:11px;border:3px solid #20233a}
+  .sc-palhint{text-align:center;font-weight:800;color:#666;margin-top:14px;font-size:15px}
+  .sc-pal{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
+  .sc-sw{width:48px;height:48px;border-radius:13px;border:4px solid transparent;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+  .sc-sw.sel{border-color:#20233a;transform:translateY(-3px)}
+  .sc-steps{display:flex;justify-content:center;gap:6px;margin:10px 0}
+  .sc-stepchip{width:26px;height:26px;border-radius:9px;background:#e6e8f5;color:#888;font-weight:800;
+    display:flex;align-items:center;justify-content:center;font-size:14px}
+  .sc-stepchip.on{background:linear-gradient(150deg,#38c66d,#2b7fff);color:#fff}
+  .sc-stepname{text-align:center;font-weight:800;font-size:18px;margin:6px 0}
+  .sc-movebox{background:linear-gradient(150deg,#20233a,#3a3f66);border-radius:20px;color:#fff;text-align:center;padding:22px 12px;margin:12px 0}
+  .sc-movebig{font-size:66px;font-weight:800;letter-spacing:3px;color:#ffd500;line-height:1}
+  .sc-movehelp{font-size:20px;font-weight:800;margin-top:10px}
+  .sc-movecount{font-size:14px;opacity:.75;margin-top:8px;font-weight:700}
 </style>
 </head>
 <body>
@@ -170,7 +197,8 @@
       <button class="tile timer" onclick="go('timer')"><span class="emoji">⏱️</span>Speed Timer</button>
       <button class="tile videos" onclick="go('videos')"><span class="emoji">📺</span>Watch Videos</button>
       <button class="tile trophy" onclick="go('trophy')"><span class="emoji">🏆</span>Trophy Room</button>
-      <button class="tile games" onclick="go('games')" style="grid-column:1/-1"><span class="emoji">🎮</span>Cube Games</button>
+      <button class="tile games" onclick="go('games')"><span class="emoji">🎮</span>Cube Games</button>
+      <button class="tile fixer" onclick="go('fixer')"><span class="emoji">🪄</span>Solve My Cube</button>
     </div>
   </section>
 
@@ -242,6 +270,12 @@
     </div>
     <div class="card" id="gameStage" style="display:none"></div>
   </section>
+
+  <!-- SOLVE MY CUBE -->
+  <section class="screen" id="fixer">
+    <h2 class="title">🪄 Solve My Cube</h2>
+    <div id="scArea"></div>
+  </section>
 </div>
 
 <div class="best-pop" id="popup" onclick="closePop()">
@@ -281,6 +315,7 @@ function go(id){
   if(id==='timer' && !scramble.textContent.startsWith('R') ) newScramble();
   if(id==='trophy'){ checkBadges(); renderTrophy(); }
   if(id==='games') showGamesMenu();
+  if(id==='fixer') scEnter();
 }
 
 /* ---------- storage helpers ---------- */
@@ -695,6 +730,223 @@ function popDone(){
     'You scored <b>'+popScore+'</b>! 🎉<br>'+
     '<button class="big-btn" style="margin-top:12px" onclick="startPop()">▶ Play again</button>';
 }
+
+/* ============================================================
+   SOLVE MY CUBE — cube engine + beginner-method solver + color input
+   Engine is the canonical Kociemba cubie model (see dev notes). The solver
+   is layer-by-layer, grouped into the 7 beginner steps, and SELF-VERIFIES
+   (it simulates its own moves and only shows a solution that reaches solved).
+   Frame: white is the DOWN face, green is FRONT, so the kid holds the cube
+   white-on-bottom / green-front for both entering and solving.
+   ============================================================ */
+const MOVES={
+ U:{cp:[3,0,1,2,4,5,6,7],co:[0,0,0,0,0,0,0,0],ep:[3,0,1,2,4,5,6,7,8,9,10,11],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},
+ R:{cp:[4,1,2,0,7,5,6,3],co:[2,0,0,1,1,0,0,2],ep:[8,1,2,3,11,5,6,7,4,9,10,0],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},
+ F:{cp:[1,5,2,3,0,4,6,7],co:[1,2,0,0,2,1,0,0],ep:[0,9,2,3,4,8,6,7,1,5,10,11],eo:[0,1,0,0,0,1,0,0,1,1,0,0]},
+ D:{cp:[0,1,2,3,5,6,7,4],co:[0,0,0,0,0,0,0,0],ep:[0,1,2,3,5,6,7,4,8,9,10,11],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},
+ L:{cp:[0,2,6,3,4,1,5,7],co:[0,1,2,0,0,2,1,0],ep:[0,1,10,3,4,5,9,7,8,2,6,11],eo:[0,0,0,0,0,0,0,0,0,0,0,0]},
+ B:{cp:[0,1,3,7,4,5,2,6],co:[0,0,1,2,0,0,2,1],ep:[0,1,2,11,4,5,6,10,8,9,3,7],eo:[0,0,0,1,0,0,0,1,0,0,1,1]},
+};
+const cbSOLVED=()=>({cp:[0,1,2,3,4,5,6,7],co:[0,0,0,0,0,0,0,0],ep:[0,1,2,3,4,5,6,7,8,9,10,11],eo:[0,0,0,0,0,0,0,0,0,0,0,0]});
+function cbMult(s,m){const cp=new Array(8),co=new Array(8),ep=new Array(12),eo=new Array(12);
+ for(let i=0;i<8;i++){cp[i]=s.cp[m.cp[i]];co[i]=(s.co[m.cp[i]]+m.co[i])%3;}
+ for(let i=0;i<12;i++){ep[i]=s.ep[m.ep[i]];eo[i]=(s.eo[m.ep[i]]+m.eo[i])%2;}return {cp,co,ep,eo};}
+function cbClone(s){return {cp:s.cp.slice(),co:s.co.slice(),ep:s.ep.slice(),eo:s.eo.slice()};}
+function cbSolvedQ(s){for(let i=0;i<8;i++)if(s.cp[i]!==i||s.co[i]!==0)return false;for(let i=0;i<12;i++)if(s.ep[i]!==i||s.eo[i]!==0)return false;return true;}
+function cbApply(s,seq){const toks=Array.isArray(seq)?seq:seq.split(/\s+/).filter(Boolean);
+ for(const t of toks){const f=t[0];let n=1;if(t[1]==="'")n=3;else if(t[1]==='2')n=2;for(let k=0;k<n;k++)s=cbMult(s,MOVES[f]);}return s;}
+const cF=[[8,9,20],[6,18,38],[0,36,47],[2,45,11],[29,26,15],[27,44,24],[33,53,42],[35,17,51]];
+const eFc=[[5,10],[7,19],[3,37],[1,46],[32,16],[28,25],[30,43],[34,52],[23,12],[21,41],[50,39],[48,14]];
+const cC=[['U','R','F'],['U','F','L'],['U','L','B'],['U','B','R'],['D','F','R'],['D','L','F'],['D','B','L'],['D','R','B']];
+const eCc=[['U','R'],['U','F'],['U','L'],['U','B'],['D','R'],['D','F'],['D','L'],['D','B'],['F','R'],['F','L'],['B','L'],['B','R']];
+const CEN=['U','R','F','D','L','B'];
+function cbFromFacelet(str){
+ const f=str.split(''),cnt={};for(const c of f)cnt[c]=(cnt[c]||0)+1;
+ for(const c of CEN)if(cnt[c]!==9)return {error:'count',detail:c};
+ const st={cp:new Array(8).fill(-1),co:new Array(8).fill(0),ep:new Array(12).fill(-1),eo:new Array(12).fill(0)};
+ const cK={},eK={};cC.forEach((c,i)=>cK[[...c].sort().join('')]=i);eCc.forEach((c,i)=>eK[[...c].sort().join('')]=i);
+ for(let i=0;i<8;i++){const cols=[f[cF[i][0]],f[cF[i][1]],f[cF[i][2]]];let o=-1;
+  for(let n=0;n<3;n++)if(cols[n]==='U'||cols[n]==='D'){o=n;break;}
+  if(o<0)return {error:'corner'};const j=cK[[...cols].sort().join('')];if(j===undefined)return {error:'corner'};st.cp[i]=j;st.co[i]=o%3;}
+ for(let i=0;i<12;i++){const cols=[f[eFc[i][0]],f[eFc[i][1]]];const j=eK[[...cols].sort().join('')];
+  if(j===undefined)return {error:'edge'};st.ep[i]=j;st.eo[i]=(cols[0]===eCc[j][0])?0:1;}
+ if(new Set(st.cp).size!==8)return {error:'corner'};if(new Set(st.ep).size!==12)return {error:'edge'};
+ if(st.co.reduce((a,b)=>a+b,0)%3!==0)return {error:'twist'};if(st.eo.reduce((a,b)=>a+b,0)%2!==0)return {error:'flip'};
+ const par=p=>{let x=0;for(let i=0;i<p.length;i++)for(let j=i+1;j<p.length;j++)if(p[i]>p[j])x^=1;return x;};
+ if(par(st.cp)!==par(st.ep))return {error:'swap'};return {state:st};
+}
+/* ---- solver ---- */
+function cbESolved(s,i){return s.ep[i]===i&&s.eo[i]===0;}
+function cbCSolved(s,i){return s.cp[i]===i&&s.co[i]===0;}
+const cbSig=s=>s.cp.join()+'|'+s.co.join()+'|'+s.ep.join()+'|'+s.eo.join();
+const YMAP={U:'U',D:'D',F:'R',R:'B',B:'L',L:'F'};
+function cbRot(a){return a.split(/\s+/).map(t=>YMAP[t[0]]+t.slice(1)).join(' ');}
+function cbVariants(a){const o=[];let x=a;for(let i=0;i<4;i++){o.push(x);x=cbRot(x);}return o;}
+function cbLib(cores,extras){const s=new Set();cores.forEach(a=>cbVariants(a).forEach(v=>s.add(v)));(extras||[]).forEach(a=>s.add(a));return [...s];}
+const U3=['U',"U'",'U2'];
+const ALLT=['U',"U'",'U2','D',"D'",'D2','R',"R'",'R2','L',"L'",'L2','F',"F'",'F2','B',"B'",'B2'];
+function cbSearch(s,scoreFn,maxLen,lib){
+ const start=scoreFn(s);let frontier=[{s,seq:[]}];const seen=new Set([cbSig(s)]);
+ for(let d=0;d<maxLen;d++){const next=[];let best=null;
+  for(const node of frontier){for(const alg of lib){const toks=alg.split(/\s+/);
+   const ns=cbApply(cbClone(node.s),toks);const k=cbSig(ns);if(seen.has(k))continue;
+   const sc=scoreFn(ns);const nseq=node.seq.concat(toks);
+   if(sc>start){if(!best||sc>best.sc||(sc===best.sc&&nseq.length<best.seq.length))best={sc,seq:nseq};}
+   else{seen.add(k);next.push({s:ns,seq:nseq});}}}
+  if(best)return best.seq;frontier=next;if(frontier.length>60000)break;}
+ return null;
+}
+function cbRunPhase(s,scoreFn,target,lib,maxLen){const seq=[];
+ while(scoreFn(s)<target){const f=cbSearch(s,scoreFn,maxLen,lib);if(!f)return {s,seq,fail:true};
+  for(const t of f){seq.push(t);s=cbApply(cbClone(s),[t]);}if(seq.length>400)return {s,seq,fail:true};}
+ return {s,seq,fail:false};}
+const g_cr=s=>[4,5,6,7].every(i=>cbESolved(s,i));
+const g_f1=s=>g_cr(s)&&[4,5,6,7].every(i=>cbCSolved(s,i));
+const g_md=s=>g_f1(s)&&[8,9,10,11].every(i=>cbESolved(s,i));
+const g_oe=s=>g_md(s)&&[0,1,2,3].every(i=>s.eo[i]===0);
+const g_oc=s=>g_oe(s)&&[0,1,2,3].every(i=>s.co[i]===0);
+const g_pc=s=>g_oc(s)&&[0,1,2,3].every(i=>s.cp[i]===i);
+const cbScore=(g,c)=>s=>g(s)?c(s):-1e9;
+const PH=[
+ {name:'White cross',  score:cbScore(s=>true,s=>[4,5,6,7].filter(i=>cbESolved(s,i)).length),target:4,lib:cbLib([],ALLT),maxLen:5},
+ {name:'White corners',score:cbScore(g_cr,s=>[4,5,6,7].filter(i=>cbCSolved(s,i)).length),target:4,lib:cbLib(["R U R'","R U' R'","R U2 R'","R U' R' U","R U R' U'"],U3),maxLen:4},
+ {name:'Middle row',   score:cbScore(g_f1,s=>[8,9,10,11].filter(i=>cbESolved(s,i)).length),target:4,lib:cbLib(["U R U' R' U' F' U F","U' L' U L U F U' F'"],U3),maxLen:4},
+ {name:'Yellow cross', score:cbScore(g_md,s=>[0,1,2,3].filter(i=>s.eo[i]===0).length),target:4,lib:cbLib(["F R U R' U' F'"],U3),maxLen:4},
+ {name:'Yellow face',  score:cbScore(g_oe,s=>[0,1,2,3].filter(i=>s.co[i]===0).length),target:4,lib:cbLib(["R U R' U R U2 R'"],U3),maxLen:5},
+ {name:'Last corners', score:cbScore(g_oc,s=>[0,1,2,3].filter(i=>s.cp[i]===i).length),target:4,lib:cbLib(["U R U' L' U R' U' L","L' U R U' L U R' U'"],U3),maxLen:5},
+ {name:'Last edges',   score:cbScore(g_pc,s=>[0,1,2,3].filter(i=>cbESolved(s,i)).length),target:4,lib:cbLib(["R U' R U R U R U' R' U' R2","R2 U R U R' U' R' U' R' U R'"],U3),maxLen:5},
+];
+function cbSimplify(toks){const amt=x=>x.length===1?1:(x[1]==='2'?2:3);let arr=toks.slice(),ch=true;
+ while(ch){ch=false;const out=[];for(const t of arr){if(out.length&&out[out.length-1][0]===t[0]){const p=out.pop();const n=(amt(p)+amt(t))%4;
+  if(n===1)out.push(p[0]);else if(n===2)out.push(p[0]+'2');else if(n===3)out.push(p[0]+"'");ch=true;}else out.push(t);}arr=out;}return arr;}
+function cbSolve(state){let s=cbClone(state);const groups=[];
+ for(const ph of PH){const r=cbRunPhase(s,ph.score,ph.target,ph.lib,ph.maxLen);if(r.fail)return {fail:true};
+  groups.push({name:ph.name,moves:cbSimplify(r.seq)});s=r.s;}
+ const all=groups.flatMap(g=>g.moves);return {fail:false,groups,moves:all,solved:cbSolvedQ(cbApply(cbClone(state),all))};}
+
+/* ---- color input UI ---- */
+const SCOLOR={U:'#ffd500',R:'#ff8a00',F:'#38c66d',D:'#f8f8f8',L:'#e23b3b',B:'#2b7fff'};
+const SNAME ={U:'Yellow',R:'Orange',F:'Green',D:'White',L:'Red',B:'Blue'};
+const FACE_ORDER=['U','F','R','B','L','D'];
+const NEIGH={U:['B','R','F','L'],R:['U','B','D','F'],F:['U','R','D','L'],D:['F','R','B','L'],L:['U','F','D','B'],B:['U','L','D','R']};
+const MOVEHELP={
+ "U":"top → LEFT","U'":"top → RIGHT","U2":"top → half around",
+ "D":"bottom → RIGHT","D'":"bottom → LEFT","D2":"bottom → half around",
+ "R":"right side UP","R'":"right side DOWN","R2":"right side → half around",
+ "L":"left side DOWN","L'":"left side UP","L2":"left side → half around",
+ "F":"front → turn ↻","F'":"front → turn ↺","F2":"front → half around",
+ "B":"back → turn ↻","B'":"back → turn ↺","B2":"back → half around",
+};
+let scMode='intro', scFaceIdx=0, scPaintColor='D', scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='';
+function scReset(){
+  scEntry={};FACE_ORDER.forEach(f=>{const a=new Array(9).fill(null);a[4]=f;scEntry[f]=a;});
+  scFaceIdx=0;scPaintColor='D';scGroups=null;scFlat=null;scMoveIdx=0;
+}
+function scEnter(){ if(!scEntry)scReset(); scRender(); }
+function scRender(){
+  const area=document.getElementById('scArea');
+  if(scMode==='intro')area.innerHTML=scIntroHTML();
+  else if(scMode==='entry')area.innerHTML=scEntryHTML();
+  else if(scMode==='solving')area.innerHTML='<div class="card" style="text-align:center"><div style="font-size:50px">🪄</div><div style="font-size:22px;font-weight:800;margin-top:8px">Figuring it out…</div></div>';
+  else if(scMode==='error')area.innerHTML=scErrorHTML(scErrMsg);
+  else if(scMode==='guide')area.innerHTML=scGuideHTML();
+}
+function scIntroHTML(){
+  return '<div class="card">'+
+   '<div style="font-size:19px;line-height:1.5;font-weight:700">🪄 I can figure out how to solve <b>YOUR</b> cube!<br>First I need to see all six sides.</div>'+
+   '<div class="sc-tip">📱 <b>How it works:</b> I show you one side at a time. Around each side are little colored dots — turn your cube so the dots match, then tap the squares to match your cube. Take your time!</div>'+
+   '<div style="margin-top:16px"><button class="big-btn" onclick="scBegin()">📷 Start entering my cube</button></div>'+
+   '</div>';
+}
+function scBegin(){ scReset(); scMode='entry'; scRender(); }
+function scSwatch(letter,sel){return '<button class="sc-sw'+(sel?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scPick(\''+letter+'\')" title="'+SNAME[letter]+'"></button>';}
+function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}
+function scEntryHTML(){
+  const f=FACE_ORDER[scFaceIdx], nb=NEIGH[f], cells=scEntry[f];
+  const filled=cells.filter((c,i)=>i===4||c).length; const done=cells.every(c=>c);
+  let grid='';
+  for(let i=0;i<9;i++){
+    if(i===4){grid+='<div class="sc-center" style="background:'+SCOLOR[f]+'"></div>';continue;}
+    const col=cells[i]?SCOLOR[cells[i]]:'';
+    grid+='<button class="sc-cell'+(cells[i]?' filled':'')+'" style="'+(col?'background:'+col:'')+'" onclick="scPaint('+i+')"></button>';
+  }
+  const pal=Object.keys(SCOLOR).map(l=>scSwatch(l,l===scPaintColor)).join('');
+  return '<div class="card">'+
+   '<div class="sc-progress">Side '+(scFaceIdx+1)+' of 6 &nbsp;•&nbsp; the <b style="color:'+(f==='D'?'#999':SCOLOR[f])+'">'+SNAME[f]+'</b> side (middle is '+SNAME[f]+')</div>'+
+   '<div class="sc-facewrap">'+
+     '<div class="sc-hintrow">'+scDot(nb[0])+'</div>'+
+     '<div class="sc-hintrow">'+scDot(nb[3])+'<div class="sc-grid">'+grid+'</div>'+scDot(nb[1])+'</div>'+
+     '<div class="sc-hintrow">'+scDot(nb[2])+'</div>'+
+   '</div>'+
+   '<div class="sc-palhint">Pick a color, then tap the squares 👇</div>'+
+   '<div class="sc-pal">'+pal+'</div>'+
+   '<div class="step-nav">'+
+     (scFaceIdx>0?'<button class="big-btn alt" onclick="scPrevFace()">← Back</button>':'<button class="big-btn alt" onclick="scMode=\'intro\';scRender()">← Start over</button>')+
+     '<button class="big-btn" onclick="scClearFace()" style="background:#888">Clear</button>'+
+     (scFaceIdx<5?'<button class="big-btn" onclick="scNextFace()"'+(done?'':' disabled')+'>Next →</button>'
+                 :'<button class="big-btn" onclick="scDoSolve()"'+(done?'':' disabled')+'>✨ Solve!</button>')+
+   '</div></div>';
+}
+function scPick(l){scPaintColor=l;scRender();}
+function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scRender();}
+function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scRender();}
+function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scRender();window.scrollTo(0,0);}}
+function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scRender();window.scrollTo(0,0);}}
+function scDoSolve(){
+  scMode='solving';scRender();
+  setTimeout(()=>{
+    let str='';for(const f of ['U','R','F','D','L','B'])str+=scEntry[f].join('');
+    const parsed=cbFromFacelet(str);
+    if(parsed.error){scErrMsg=scFriendlyError(parsed.error);scMode='error';scRender();return;}
+    const res=cbSolve(parsed.state);
+    if(res.fail||!res.solved){scErrMsg=scFriendlyError('hard');scMode='error';scRender();return;}
+    if(res.moves.length===0){scErrMsg='already';scMode='error';scRender();return;}
+    scGroups=res.groups;scFlat=[];
+    scGroups.forEach((g,gi)=>g.moves.forEach(m=>scFlat.push({m,name:g.name,gi})));
+    scMoveIdx=0;scMode='guide';scRender();
+  },40);
+}
+function scFriendlyError(code){
+  if(code==='count')return 'count';
+  if(code==='already')return 'already';
+  return 'impossible';
+}
+function scErrorHTML(msg){
+  let body;
+  if(msg==='count')body='I counted the colors and something doesn\'t add up — each of the 6 colors should appear exactly <b>9</b> times. Let\'s check the sides again!';
+  else if(msg==='already')body='🎉 Great news — your cube is <b>already solved</b>! Nothing to do. Go show someone!';
+  else body='Hmm, this cube looks <b>impossible</b> to me — a sticker might be entered in the wrong spot (or a real cube piece is twisted). Let\'s carefully enter it one more time.';
+  const btn = msg==='already' ? '<button class="big-btn" onclick="go(\'home\')">🏠 Home</button>'
+            : '<button class="big-btn" onclick="scBegin()">↺ Try again</button>';
+  return '<div class="card" style="text-align:center">'+
+    '<div style="font-size:50px">'+(msg==='already'?'🌟':'🤔')+'</div>'+
+    '<div style="font-size:18px;font-weight:700;line-height:1.5;margin:10px 0">'+body+'</div>'+btn+'</div>';
+}
+function scGuideHTML(){
+  const total=scFlat.length, cur=scFlat[scMoveIdx];
+  const stepsBar=scGroups.map((g,i)=>'<span class="sc-stepchip'+(i===cur.gi?' on':'')+'">'+(i+1)+'</span>').join('');
+  const pct=Math.round((scMoveIdx)/total*100);
+  const move=cur.m, big=move;
+  return '<div class="card">'+
+   '<div style="text-align:center;font-weight:800;color:#666">Hold your cube: <b>WHITE down</b>, <b>GREEN front</b> 🟢</div>'+
+   '<div class="sc-steps">'+stepsBar+'</div>'+
+   '<div class="sc-stepname">Step '+(cur.gi+1)+': '+cur.name+'</div>'+
+   '<div class="progress"><i style="width:'+pct+'%"></i></div>'+
+   '<div class="sc-movebox">'+
+     '<div class="sc-movebig">'+big+'</div>'+
+     '<div class="sc-movehelp">'+MOVEHELP[move]+'</div>'+
+     '<div class="sc-movecount">move '+(scMoveIdx+1)+' of '+total+'</div>'+
+   '</div>'+
+   '<div class="step-nav">'+
+     '<button class="big-btn alt" onclick="scMove(-1)"'+(scMoveIdx===0?' disabled':'')+'>← Back</button>'+
+     (scMoveIdx<total-1?'<button class="big-btn" onclick="scMove(1)">Next →</button>'
+                       :'<button class="big-btn" onclick="scFinish()">🎉 Done!</button>')+
+   '</div>'+
+   '<div style="text-align:center;margin-top:10px"><button class="big-btn" style="background:#888;font-size:15px;padding:8px 14px" onclick="scBegin()">↺ Enter a different cube</button></div>'+
+   '</div>';
+}
+function scMove(d){scMoveIdx=Math.max(0,Math.min(scFlat.length-1,scMoveIdx+d));scRender();window.scrollTo(0,0);}
+function scFinish(){celebrate('🎉','CUBE SOLVED!','You followed every step!');scMode='intro';scRender();}
 
 /* ---------- init ---------- */
 renderTimes();renderStep();renderVideos();newScramble();checkBadges(true);

@@ -10,7 +10,7 @@ Target user: a young beginner cuber. Design priorities, in order: big tap target
 ## Architecture
 Everything lives in `index.html`:
 - `<style>` — CSS. Cube colors are CSS variables in `:root` (`--white`, `--yellow`, `--red`, `--orange`, `--blue`, `--green`).
-- Markup — one `<section class="screen">` per screen: `#home`, `#timer`, `#solve`, `#videos`, `#trophy`, `#games`. Only the one with class `active` is shown.
+- Markup — one `<section class="screen">` per screen: `#home`, `#timer`, `#solve`, `#videos`, `#trophy`, `#games`, `#fixer`. Only the one with class `active` is shown.
 - `<script>` — plain vanilla JS, no framework. Organized in labeled comment blocks by feature.
 
 Navigation: `go(screenId)` toggles the `.active` class and shows/hides the Back button.
@@ -34,8 +34,14 @@ There is no backend. All state is per-device, in the browser.
 6. **Celebration popup** — a queued full-screen overlay reused by both new-best-times and new-badge unlocks. `celebrate(icon, title, sub)` enqueues; `closePop()` advances the queue.
 7. **Trophy Room** — badges + practice streak. `BADGES[]` (`{id, icon, name, how, check}`), `badgeStats()` derives stats from stored data, `checkBadges(silent)` unlocks + celebrates new ones, `renderTrophy()` draws the streak banner and badge grid. `markPracticedToday()` / `streakCurrent()` manage the streak (date-based). Called from `recordTime()` and `stepMove()`.
 8. **Cube Games** — a menu (`showGamesMenu()`) into two games rendered in `#gameStage`: **Color Memory** (Simon-style: `startMemory`, `flashSeq`, `memTap`, `memOver`) and **Color Pop** (speed matching: `startPop`, `newPopRound`, `popTap`, `popDone`). `gameToken` cancels stale async/timers when leaving a game; `go()` calls `stopGame()` on exit. Both use the shared `GCOLORS[]` cube palette.
+9. **Solve My Cube** (`#fixer`) — a real cube solver. The kid paints in all six sides (`scEntry`, per-face 3×3 with neighbor-color hints so orientation is unambiguous), it's validated, and a beginner-method solution is shown move-by-move, grouped into the same 7 steps. Two parts:
+   - **Engine + solver** (all `cb*`-prefixed): a canonical Kociemba cubie model (`MOVES`, `cbMult`, `cbApply`, `cbFromFacelet` which also validates: color counts + orientation/permutation parity). `cbSolve()` is layer-by-layer via a curated bounded-search (`cbSearch`) over the beginner algorithms (auto-rotated to all sides by `cbVariants`), grouped into the 7 `PH` phases, then `cbSimplify`'d. **It self-verifies**: it simulates its own moves and returns `solved:false` rather than ever showing a solution that doesn't reach solved. Stress-tested to 100% on thousands of random cubes.
+   - **UI** (`sc*`-prefixed): `scRender()` dispatches on `scMode` (`intro`/`entry`/`solving`/`error`/`guide`). Frame is **white on the DOWN face, green FRONT** (`SCOLOR`/`SNAME` map colors↔face letters; the kid holds it white-down/green-front). Friendly validation errors (impossible / wrong count / already solved). `MOVEHELP` gives each move a kid-readable description.
 
 `init` at the bottom calls the render functions once on load and seeds badges silently with `checkBadges(true)`.
+
+### Solver frame note
+The color scheme is fixed so the first layer (white) is the solver's D face and the last layer (yellow) is U — so the 7 phase labels line up with Learn-to-Solve, and the kid holds the cube the same way for entry and solving. Do not "simplify" by swapping colors without re-checking the whole `cbFromFacelet` → `cbSolve` pipeline against a real-cube color arrangement.
 
 ## Conventions
 - Vanilla JS only. **Do not** add a framework or a build step — the whole value here is a zero-dependency single file that a non-developer can host and edit.

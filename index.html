@@ -43,7 +43,7 @@
   .tile.solve{background:linear-gradient(150deg,#38c66d,#1ea85a)}
   .tile.timer{background:linear-gradient(150deg,#ff8a00,#e23b3b)}
   .tile.videos{background:linear-gradient(150deg,#2b7fff,#6a5cff)}
-  .tile.trophy{background:linear-gradient(150deg,#ffb300,#ff7a00);color:#5a3d00}
+  .tile.cubes{background:linear-gradient(120deg,#e23b3b,#ff8a00,#ffd500,#38c66d,#2b7fff)}
   .tile.games{background:linear-gradient(150deg,#ff5ca8,#a15cff)}
   .tile.fixer{background:linear-gradient(150deg,#00c2a8,#12a5c2)}
   .hello{background:#fff;border-radius:22px;padding:16px 20px;margin-bottom:16px;font-size:18px;font-weight:700}
@@ -111,21 +111,26 @@
   .now-playing{font-weight:800;color:#fff;margin-top:12px;font-size:18px;text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.15)}
   .note{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:14px;color:#6b5400;line-height:1.5}
 
-  /* TROPHY */
-  .streak-banner{background:linear-gradient(150deg,#ff8a00,#e23b3b);color:#fff;border-radius:22px;
-    padding:18px 20px;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.15);margin-bottom:16px}
-  .streak-banner .flame{font-size:44px;line-height:1}
-  .streak-banner .big{font-size:30px;font-weight:800;margin:4px 0 2px}
-  .streak-banner .sub{font-size:14px;opacity:.95;font-weight:700}
-  .badge-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .badge{background:#fff;border-radius:18px;padding:18px 10px 14px;text-align:center;position:relative;
-    box-shadow:0 5px 0 rgba(0,0,0,.1)}
-  .badge.locked{opacity:.55;filter:grayscale(1)}
-  .badge.got{background:linear-gradient(160deg,#fff,#fff5d6);box-shadow:0 5px 0 rgba(255,180,0,.4)}
-  .badge .bico{font-size:46px;line-height:1}
-  .badge .bname{font-weight:800;font-size:16px;margin-top:8px;line-height:1.2}
-  .badge .bhow{font-size:12px;color:#8a8a8a;font-weight:700;margin-top:3px}
-  .badge .corner{position:absolute;top:8px;right:10px;font-size:16px}
+  /* CUBE GUIDE */
+  .cube-group h3{color:#fff;font-size:19px;margin:16px 0 10px;text-shadow:0 2px 0 rgba(0,0,0,.15)}
+  .cube-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .cube-card{background:#fff;border:none;border-radius:20px;padding:14px 8px 12px;text-align:center;cursor:pointer;
+    box-shadow:0 6px 0 rgba(0,0,0,.1);display:flex;flex-direction:column;align-items:center;gap:5px;color:var(--ink);transition:transform .05s}
+  .cube-card:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.1)}
+  .cube-ico{width:100px;height:112px;display:flex;align-items:center;justify-content:center}
+  .cube-ico svg{width:100%;height:100%;overflow:visible}
+  .cube-name{font-weight:800;font-size:17px;line-height:1.05}
+  .cube-stars{font-size:14px;letter-spacing:1px}
+  .cube-tag{font-size:12px;color:#777;font-weight:700;line-height:1.15}
+  .cube-detail-ico{width:190px;height:200px;margin:6px auto 2px;display:flex;align-items:center;justify-content:center}
+  .cube-detail-ico svg{width:100%;height:100%;overflow:visible}
+  .cube-title{text-align:center;font-size:30px;font-weight:800;margin-top:6px}
+  .cube-nick{text-align:center;font-size:15px;color:#777;font-weight:700;margin-top:2px}
+  .cube-stars-big{text-align:center;font-size:20px;font-weight:800;margin:10px 0}
+  .cube-facts{font-size:16px;line-height:1.55;margin:6px 0 0;padding-left:22px}
+  .cube-facts li{margin-bottom:6px}
+  .cube-cool{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:15px;
+    color:#6b5400;line-height:1.5;margin-top:14px;font-weight:700}
 
   /* GAMES */
   .game-menu{display:grid;gap:14px}
@@ -196,7 +201,7 @@
       <button class="tile solve" onclick="go('solve')"><span class="emoji">🧠</span>Learn to Solve</button>
       <button class="tile timer" onclick="go('timer')"><span class="emoji">⏱️</span>Speed Timer</button>
       <button class="tile videos" onclick="go('videos')"><span class="emoji">📺</span>Watch Videos</button>
-      <button class="tile trophy" onclick="go('trophy')"><span class="emoji">🏆</span>Trophy Room</button>
+      <button class="tile cubes" onclick="go('cubes')"><span class="emoji">📖</span>Cube Guide</button>
       <button class="tile games" onclick="go('games')"><span class="emoji">🎮</span>Cube Games</button>
       <button class="tile fixer" onclick="go('fixer')"><span class="emoji">🪄</span>Solve My Cube</button>
     </div>
@@ -248,11 +253,12 @@
     <div class="note" id="videoNote">👦➡️👨 <b>For grown-ups:</b> These are the only videos your kid can reach — they play right here <b>inside the app</b>, so he never lands on the open YouTube feed. To change the list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each entry needs a title, a channel name, and the video <b>id</b> (the part after <b>v=</b> in a youtube.com/watch?v=<b>ID</b> link).</div>
   </section>
 
-  <!-- TROPHY -->
-  <section class="screen" id="trophy">
-    <h2 class="title">🏆 Trophy Room</h2>
-    <div class="streak-banner" id="streakBanner"></div>
-    <div class="badge-grid" id="badgeGrid"></div>
+  <!-- CUBE GUIDE -->
+  <section class="screen" id="cubes">
+    <h2 class="title">📖 Cube Guide</h2>
+    <div class="hello" id="cubeIntro">🧩 There are SO many kinds of cubes! Tap one to learn about it.</div>
+    <div id="cubeDetail" style="display:none"></div>
+    <div id="cubeList"></div>
   </section>
 
   <!-- GAMES -->
@@ -313,7 +319,7 @@ function go(id){
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
   window.scrollTo(0,0);
   if(id==='timer' && !scramble.textContent.startsWith('R') ) newScramble();
-  if(id==='trophy'){ checkBadges(); renderTrophy(); }
+  if(id==='cubes') renderCubes();
   if(id==='games') showGamesMenu();
   if(id==='fixer') scEnter();
 }
@@ -352,9 +358,7 @@ function stopRun(){
 function recordTime(ms){
   const prevBest = times.length?Math.min(...times):Infinity;
   times.push(ms);if(times.length>50)times.shift();save('cc_times',times);renderTimes();
-  markPracticedToday();
   if(ms<prevBest) celebrate('🌟','NEW BEST TIME!',fmt(ms)+' seconds');
-  checkBadges();
 }
 function renderTimes(){
   const best=times.length?Math.min(...times):null;
@@ -444,8 +448,6 @@ function renderStep(){
 }
 function stepMove(d){
   stepI=Math.max(0,Math.min(STEPS.length-1,stepI+d));
-  if(stepI>load('cc_maxstep',0)) save('cc_maxstep',stepI);
-  markPracticedToday();checkBadges();
   renderStep();window.scrollTo(0,0);
 }
 
@@ -492,7 +494,7 @@ function closeVideo(){
 }
 
 /* ============================================================
-   CELEBRATION POPUP (queued, reused by best times + badges)
+   CELEBRATION POPUP (queued, reused by best times + solved cube)
    ============================================================ */
 let popQueue=[];
 function celebrate(icon,title,sub){popQueue.push({icon,title,sub});if(popQueue.length===1)renderPop();}
@@ -510,73 +512,192 @@ function closePop(){
 }
 
 /* ============================================================
-   TROPHY ROOM — badges + practice streak
+   CUBE GUIDE — an illustrated index of puzzle cubes.
+   Every icon is drawn as SVG (no photos) so the app stays a
+   single offline file. Entries are grouped like the video list.
    ============================================================ */
-function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function todayStr(){return dstr(new Date())}
-function yesterdayStr(){const d=new Date();d.setDate(d.getDate()-1);return dstr(d)}
-
-function markPracticedToday(){
-  const today=todayStr();
-  const st=load('cc_streak',{count:0,best:0,last:null});
-  if(st.last===today) return;                       // already counted today
-  st.count = (st.last===yesterdayStr()) ? (st.count||0)+1 : 1;
-  st.last=today;
-  if(st.count>(st.best||0)) st.best=st.count;
-  save('cc_streak',st);
+/* -- tiny SVG helpers -- */
+const _pt=p=>p[0].toFixed(1)+','+p[1].toFixed(1);
+const _poly=(pts,fill,sw)=>'<polygon points="'+pts.map(_pt).join(' ')+'" fill="'+fill+'" stroke="#20233a" stroke-width="'+(sw||2)+'" stroke-linejoin="round"/>';
+const _svg=(inner,vb)=>'<svg viewBox="'+vb+'" xmlns="http://www.w3.org/2000/svg">'+inner+'</svg>';
+const _lin=n=>{const a=[];for(let i=0;i<=n;i++)a.push(i/n);return a;};
+const CUBEVB='-74 -95 148 190';
+const ISO_A=[0.866,0.5], ISO_B=[-0.866,0.5], ISO_D=[0,1], ISO_UR=[0.866,-0.5], ISO_UL=[-0.866,-0.5];
+/* one flat face, tiled by fraction "cut" lines, in isometric space */
+function isoFace(o,U,V,cu,cv,color,sw){
+  let s='';
+  for(let i=0;i<cu.length-1;i++)for(let j=0;j<cv.length-1;j++){
+    const P=(u,v)=>[o[0]+U[0]*u+V[0]*v, o[1]+U[1]*u+V[1]*v];
+    const q=[P(cu[i],cv[j]),P(cu[i+1],cv[j]),P(cu[i+1],cv[j+1]),P(cu[i],cv[j+1])];
+    s+=_poly(q,(typeof color==='function')?color(i,j):color,sw);
+  }
+  return s;
 }
-function streakCurrent(st){
-  if(!st.last) return 0;
-  if(st.last===todayStr()||st.last===yesterdayStr()) return st.count||0;
-  return 0;                                          // streak has lapsed
+/* the three visible faces of a cube; cut arrays are fractions 0..1 */
+function isoCube(E,cTA,cTB,cA,cB,cV,colTop,colRight,colLeft,sw){
+  const a=[ISO_A[0]*E,ISO_A[1]*E], b=[ISO_B[0]*E,ISO_B[1]*E], D=[ISO_D[0]*E,ISO_D[1]*E];
+  const ur=[ISO_UR[0]*E,ISO_UR[1]*E], ul=[ISO_UL[0]*E,ISO_UL[1]*E];
+  const M=[0,0], T=[0,-E];
+  return isoFace(M,ul,D,cB,cV,colLeft,sw)+isoFace(M,ur,D,cA,cV,colRight,sw)+isoFace(T,a,b,cTA,cTB,colTop,sw);
+}
+function cubeSVG(n){const c=_lin(n);
+  return _svg(isoCube(78,c,c,c,c,c,'#f8f8f8','#e23b3b','#2b7fff',Math.max(1.1,2.6-n*0.18)),CUBEVB);}
+function mirrorSVG(){const c=[0,0.3,0.64,1];
+  return _svg(isoCube(78,c,c,c,c,c,'#ffdf7a','#e0a11f','#b9821a',2),CUBEVB);}
+function voidSVG(){const c=_lin(3);
+  let inner=isoCube(78,c,c,c,c,c,'#f8f8f8','#e23b3b','#2b7fff',2);
+  inner+='<ellipse cx="0" cy="22" rx="21" ry="18" fill="#ffffff" stroke="#20233a" stroke-width="2.5"/>';
+  inner+='<ellipse cx="0" cy="24" rx="12" ry="10" fill="#cfd4ea" stroke="#20233a" stroke-width="1.5"/>';
+  return _svg(inner,CUBEVB);}
+function ghostSVG(){const c=[0,0.42,0.7,1],cTA=[0,0.3,0.6,1],cTB=[0,0.34,0.68,1];
+  return _svg(isoCube(78,cTA,cTB,c,c,c,'#e6deff','#b9a7f0','#9d86e8',2),CUBEVB);}
+function skewbSVG(){
+  const E=78,a=[ISO_A[0]*E,ISO_A[1]*E],b=[ISO_B[0]*E,ISO_B[1]*E],ur=[ISO_UR[0]*E,ISO_UR[1]*E],ul=[ISO_UL[0]*E,ISO_UL[1]*E],D=[ISO_D[0]*E,ISO_D[1]*E],M=[0,0],T=[0,-E];
+  const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+  function face(o,U,V,cols){
+    const p=[o,[o[0]+U[0],o[1]+U[1]],[o[0]+U[0]+V[0],o[1]+U[1]+V[1]],[o[0]+V[0],o[1]+V[1]]];
+    const m=mid(p[0],p[2]);let s='';
+    for(let i=0;i<4;i++)s+=_poly([p[i],p[(i+1)%4],m],cols[i],2);
+    return s+_poly([mid(p[0],p[1]),mid(p[1],p[2]),mid(p[2],p[3]),mid(p[3],p[0])],cols[4],2);
+  }
+  return _svg(
+    face(M,ul,D,['#2b7fff','#38c66d','#2b7fff','#38c66d','#e23b3b'])+
+    face(M,ur,D,['#e23b3b','#ff8a00','#e23b3b','#ff8a00','#ffd500'])+
+    face(T,a,b,['#f8f8f8','#ffd500','#f8f8f8','#ffd500','#38c66d']),CUBEVB);
+}
+function _cog(cx,cy,r,teeth,fill){
+  let s='';const tl=r*0.4,tw=r*0.5;
+  for(let k=0;k<teeth;k++){const a=k/teeth*360,ar=a*Math.PI/180,x=cx+Math.cos(ar)*r,y=cy+Math.sin(ar)*r;
+    s+='<rect x="'+(x-tw/2).toFixed(1)+'" y="'+(y-tl/2).toFixed(1)+'" width="'+tw.toFixed(1)+'" height="'+tl.toFixed(1)+'" fill="'+fill+'" stroke="#20233a" stroke-width="1.3" transform="rotate('+a.toFixed(1)+' '+x.toFixed(1)+' '+y.toFixed(1)+')"/>';}
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+fill+'" stroke="#20233a" stroke-width="1.8"/>';
+  return s+'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.32).toFixed(1)+'" fill="#f8f8f8" stroke="#20233a" stroke-width="1.4"/>';
+}
+function gearSVG(){const c=_lin(3);
+  let inner=isoCube(78,c,c,c,c,c,'#cfe3ff','#7ea9e8','#5a86c8',2);
+  inner+=_cog(0,-39,15,8,'#3a3f66')+_cog(33.8,19.5,15,8,'#3a3f66')+_cog(-33.8,19.5,15,8,'#3a3f66');
+  return _svg(inner,CUBEVB);}
+function triSVG(n){
+  const W=150,H=W*0.866,A=[0,-H/2],dR=[W/(2*n),H/n],dL=[-W/(2*n),H/n];
+  const V=(k,i)=>[A[0]+i*dR[0]+(k-i)*dL[0], A[1]+i*dR[1]+(k-i)*dL[1]];
+  const pal=['#38c66d','#ffd500','#e23b3b','#ff8a00','#2b7fff'];let s='';
+  for(let r=0;r<n;r++){
+    for(let i=0;i<=r;i++)s+=_poly([V(r,i),V(r+1,i),V(r+1,i+1)],pal[(r+i)%pal.length],2);
+    for(let i=0;i<r;i++)s+=_poly([V(r,i),V(r,i+1),V(r+1,i+1)],pal[(r+i+2)%pal.length],2);
+  }
+  return _svg(s,'-82 -72 164 144');
+}
+function megaSVG(){
+  const R=52,r=26,O=[],I=[];
+  for(let k=0;k<5;k++){const a=(-90+k*72)*Math.PI/180;O.push([Math.cos(a)*R,Math.sin(a)*R]);I.push([Math.cos(a)*r,Math.sin(a)*r]);}
+  const pal=['#38c66d','#ffd500','#e23b3b','#ff8a00','#2b7fff'];let s=_poly(I,'#f8f8f8',2);
+  for(let k=0;k<5;k++){const kn=(k+1)%5;
+    s+=_poly([O[k],O[kn],I[kn],I[k]],pal[k],2)+_poly([O[k],I[k],I[(k+4)%5]],pal[(k+2)%5],2);}
+  return _svg(s,'-60 -62 120 122');
+}
+function clockSVG(){
+  let s='<rect x="-58" y="-58" width="116" height="116" rx="20" fill="#dfe4fb" stroke="#20233a" stroke-width="3"/>',idx=0;
+  for(const gy of [-34,0,34])for(const gx of [-34,0,34]){
+    s+='<circle cx="'+gx+'" cy="'+gy+'" r="14" fill="#fff" stroke="#20233a" stroke-width="2"/>';
+    s+='<line x1="'+gx+'" y1="'+(gy-14)+'" x2="'+gx+'" y2="'+(gy-10)+'" stroke="#e23b3b" stroke-width="2.4"/>';
+    const ar=(idx*40)*Math.PI/180,hx=gx+Math.sin(ar)*9,hy=gy-Math.cos(ar)*9;
+    s+='<line x1="'+gx+'" y1="'+gy+'" x2="'+hx.toFixed(1)+'" y2="'+hy.toFixed(1)+'" stroke="#20233a" stroke-width="2.4"/>';
+    s+='<circle cx="'+gx+'" cy="'+gy+'" r="1.9" fill="#20233a"/>';idx++;
+  }
+  for(const c of [[-46,-46],[46,-46],[-46,46],[46,46]])s+='<circle cx="'+c[0]+'" cy="'+c[1]+'" r="5" fill="#ffd500" stroke="#20233a" stroke-width="2"/>';
+  return _svg(s,'-64 -64 128 128');
 }
 
-const BADGES=[
-  {id:'first', icon:'🥇', name:'First Solve',   how:'Finish 1 solve',      check:s=>s.solves>=1},
-  {id:'five',  icon:'🖐️', name:'High Five',     how:'Do 5 solves',         check:s=>s.solves>=5},
-  {id:'ten',   icon:'🔟', name:'Ten Club',      how:'Do 10 solves',        check:s=>s.solves>=10},
-  {id:'sub2',  icon:'⚡', name:'Speedy',        how:'Solve under 2:00',    check:s=>s.best<120000},
-  {id:'sub1',  icon:'🚀', name:'Super Speedy',  how:'Solve under 1:00',    check:s=>s.best<60000},
-  {id:'master',icon:'🧠', name:'Cube Master',   how:'Reach the last step', check:s=>s.maxStep>=STEPS.length-1},
-  {id:'fire',  icon:'🔥', name:'On Fire',       how:'Practice 3 days',     check:s=>s.streakBest>=3},
-  {id:'star',  icon:'🌟', name:'Superstar',     how:'Practice 7 days',     check:s=>s.streakBest>=7},
+/* -- the encyclopedia entries (grown-ups can add more!) -- */
+const CUBES=[
+ {id:'c2',group:'🧊 The Cube Family (by size)',name:'2×2',nick:'Pocket Cube',stars:2,tag:'Just the corners!',icon:()=>cubeSVG(2),
+  facts:['Only 8 corner pieces — no middle or edge pieces.','About 3.6 million ways to scramble it.','A great FIRST cube to learn on.'],
+  cool:'Speedcubers can solve a 2×2 in about 1 second!'},
+ {id:'c3',group:'🧊 The Cube Family (by size)',name:'3×3',nick:'Rubik\'s Cube',stars:3,tag:'The famous one!',icon:()=>cubeSVG(3),
+  facts:['Invented by Ernő Rubik in 1974.','Has 43 quintillion ways to scramble — a 43 with 18 zeros after it!','The best-selling puzzle toy ever made.'],
+  cool:'No matter how mixed up it is, it can ALWAYS be solved in 20 moves or fewer!'},
+ {id:'c4',group:'🧊 The Cube Family (by size)',name:'4×4',nick:'Rubik\'s Revenge',stars:4,tag:'Sneaky centers!',icon:()=>cubeSVG(4),
+  facts:['Two layers thick on each side.','The middle pieces can MOVE, so it\'s trickier.','Big cubes can throw a surprise at you called a "parity".'],
+  cool:'It has more ways to scramble it than there are atoms in your whole body!'},
+ {id:'c5',group:'🧊 The Cube Family (by size)',name:'5×5',nick:'Professor\'s Cube',stars:4,tag:'Big and brainy!',icon:()=>cubeSVG(5),
+  facts:['Five layers on each side — 25 stickers per face!','It has fixed middles AND ones that move.','A favorite for cubers who want a challenge.'],
+  cool:'Its nickname is the "Professor\'s Cube" because it looks so smart!'},
+ {id:'c6',group:'🧊 The Cube Family (by size)',name:'6×6',nick:'V-Cube 6',stars:5,tag:'No middle guides!',icon:()=>cubeSVG(6),
+  facts:['Six layers — and NO fixed center pieces.','You build the centers and edges first, then finish like a 3×3.','Made famous by the V-Cube company.'],
+  cool:'Even champions take a minute or two to solve a 6×6!'},
+ {id:'c7',group:'🧊 The Cube Family (by size)',name:'7×7',nick:'V-Cube 7',stars:5,tag:'Giant puzzle!',icon:()=>cubeSVG(7),
+  facts:['Seven layers and 49 stickers on every side.','Often shaped like a pillow so the corners don\'t pop off.','One of the biggest cubes made in large numbers.'],
+  cool:'People have built GIANT cubes — 17×17, 21×21, even a 33×33 with over 6,000 stickers!'},
+
+ {id:'pyra',group:'✨ Wild & Wonderful Shapes',name:'Pyraminx',nick:'The Pyramid',stars:2,tag:'Shaped like a pyramid!',icon:()=>triSVG(3),
+  facts:['A triangle-shaped puzzle with 4 sides.','It twists at the corners and the little tips.','One of the easiest puzzles to learn.'],
+  cool:'The world record is UNDER 1 second — faster than a blink!'},
+ {id:'mega',group:'✨ Wild & Wonderful Shapes',name:'Megaminx',nick:'The 12-Sider',stars:4,tag:'12 sides, 12 colors!',icon:()=>megaSVG(),
+  facts:['Shaped like a ball with 12 flat pentagon sides.','It uses 12 different colors.','Solves a lot like a 3×3 — just with more faces.'],
+  cool:'There are even bigger versions called the Gigaminx and Teraminx!'},
+ {id:'skewb',group:'✨ Wild & Wonderful Shapes',name:'Skewb',nick:null,stars:3,tag:'Twists at the corners!',icon:()=>skewbSVG(),
+  facts:['A cube that turns around its CORNERS, not its sides.','Only 6 faces, but a whole new way to twist.','Quick to learn and fun to speed-solve.'],
+  cool:'A super-fast Skewb solve takes only about 1 second!'},
+ {id:'mirror',group:'✨ Wild & Wonderful Shapes',name:'Mirror Cube',nick:'Bump Cube',stars:3,tag:'Solve it by SHAPE!',icon:()=>mirrorSVG(),
+  facts:['Every piece is a different SIZE, and it\'s all one shiny color.','You solve it by making a perfect cube again — not by color.','Also called the "Bump Cube".'],
+  cool:'When it\'s scrambled it looks like a wild silver skyscraper!'},
+ {id:'void',group:'✨ Wild & Wonderful Shapes',name:'Void Cube',nick:null,stars:3,tag:'It has a hole!',icon:()=>voidSVG(),
+  facts:['A 3×3 with holes right THROUGH the middle.','You can see straight through it!','It has no center pieces at all.'],
+  cool:'Because the centers are gone, it can give you a tricky surprise called a "parity".'},
+ {id:'gear',group:'✨ Wild & Wonderful Shapes',name:'Gear Cube',nick:null,stars:2,tag:'Turns with gears!',icon:()=>gearSVG(),
+  facts:['The pieces have GEAR teeth that mesh together.','Every turn spins the edges around.','It looks amazing while you solve it.'],
+  cool:'You have to turn a side all the way around just to make one move!'},
+ {id:'clock',group:'✨ Wild & Wonderful Shapes',name:'Rubik\'s Clock',nick:null,stars:3,tag:'Clocks, not twists!',icon:()=>clockSVG(),
+  facts:['Not a twisty puzzle — it has 9 little clocks on each side.','You turn wheels and press pins to move the hands.','The goal is to make ALL the clocks point to 12.'],
+  cool:'It\'s one of the fastest puzzles — records are under 3 seconds!'},
+ {id:'ghost',group:'✨ Wild & Wonderful Shapes',name:'Ghost Cube',nick:null,stars:5,tag:'A tricky shape-shifter!',icon:()=>ghostSVG(),
+  facts:['A 3×3 hiding inside a slanted, all-one-color shape.','As you turn it, it slides into crazy shapes.','You solve it by getting the neat cube shape back.'],
+  cool:'It\'s famous for being one of the HARDEST puzzles to figure out!'},
+ {id:'morph',group:'✨ Wild & Wonderful Shapes',name:'Pyramorphix',nick:'Mini Morph',stars:2,tag:'A shape-shifting pyramid!',icon:()=>triSVG(2),
+  facts:['Looks like a pyramid but works like a 2×2.','It changes shape as you turn it.','A fun, easy shape-shifter to start with.'],
+  cool:'Turn it a few times and it stops looking like a pyramid at all!'},
 ];
-function badgeStats(){
-  const t=load('cc_times',[]);
-  return {
-    solves:t.length,
-    best:t.length?Math.min(...t):Infinity,
-    maxStep:load('cc_maxstep',0),
-    streakBest:(load('cc_streak',{best:0}).best)||0,
-  };
-}
-function checkBadges(silent){
-  const stats=badgeStats();
-  const earned=BADGES.filter(b=>b.check(stats)).map(b=>b.id);
-  const known=load('cc_badges',[]);
-  const fresh=earned.filter(id=>!known.includes(id));
-  save('cc_badges',[...new Set([...known,...earned])]);
-  if(!silent) fresh.forEach(id=>{const b=BADGES.find(x=>x.id===id);celebrate(b.icon,'NEW BADGE!',b.name);});
-}
-function renderTrophy(){
-  const st=load('cc_streak',{count:0,best:0,last:null});
-  const cur=streakCurrent(st);
-  document.getElementById('streakBanner').innerHTML=
-    '<div class="flame">🔥</div>'+
-    '<div class="big">'+cur+' day'+(cur===1?'':'s')+' in a row!</div>'+
-    '<div class="sub">Best streak: '+(st.best||0)+' • Practice tomorrow to keep it going!</div>';
-  const stats=badgeStats();
-  const grid=document.getElementById('badgeGrid');grid.innerHTML='';
-  BADGES.forEach(b=>{
-    const got=b.check(stats);
-    const d=document.createElement('div');
-    d.className='badge '+(got?'got':'locked');
-    d.innerHTML='<div class="corner">'+(got?'✅':'🔒')+'</div>'+
-      '<div class="bico">'+b.icon+'</div>'+
-      '<div class="bname">'+b.name+'</div>'+
-      '<div class="bhow">'+(got?'Unlocked!':b.how)+'</div>';
-    grid.appendChild(d);
+
+function starHTML(n){let s='';for(let i=0;i<5;i++)s+='<span style="color:'+(i<n?'#ffb300':'#d4d7e6')+'">★</span>';return s;}
+function renderCubes(){
+  closeCubeDetail();
+  const list=document.getElementById('cubeList');list.innerHTML='';
+  const groups={};CUBES.forEach(c=>{(groups[c.group]=groups[c.group]||[]).push(c);});
+  Object.keys(groups).forEach(g=>{
+    const wrap=document.createElement('div');wrap.className='cube-group';
+    const h=document.createElement('h3');h.textContent=g;wrap.appendChild(h);
+    const grid=document.createElement('div');grid.className='cube-grid';
+    groups[g].forEach(c=>{
+      const b=document.createElement('button');b.className='cube-card';b.onclick=()=>openCube(c.id);
+      b.innerHTML='<div class="cube-ico">'+c.icon()+'</div>'+
+        '<div class="cube-name">'+esc(c.name)+'</div>'+
+        '<div class="cube-stars">'+starHTML(c.stars)+'</div>'+
+        '<div class="cube-tag">'+esc(c.tag)+'</div>';
+      grid.appendChild(b);
+    });
+    wrap.appendChild(grid);list.appendChild(wrap);
   });
+}
+function openCube(id){
+  const c=CUBES.find(x=>x.id===id);if(!c)return;
+  document.getElementById('cubeDetail').innerHTML=
+    '<div class="card">'+
+      '<button class="big-btn alt" style="margin-bottom:10px" onclick="closeCubeDetail()">← All cubes</button>'+
+      '<div class="cube-detail-ico">'+c.icon()+'</div>'+
+      '<div class="cube-title">'+esc(c.name)+'</div>'+
+      (c.nick?'<div class="cube-nick">Also called: '+esc(c.nick)+'</div>':'')+
+      '<div class="cube-stars-big">How tricky: '+starHTML(c.stars)+'</div>'+
+      '<ul class="cube-facts">'+c.facts.map(f=>'<li>'+esc(f)+'</li>').join('')+'</ul>'+
+      '<div class="cube-cool">🤯 '+esc(c.cool)+'</div>'+
+    '</div>';
+  document.getElementById('cubeDetail').style.display='block';
+  document.getElementById('cubeList').style.display='none';
+  document.getElementById('cubeIntro').style.display='none';
+  window.scrollTo(0,0);
+}
+function closeCubeDetail(){
+  const d=document.getElementById('cubeDetail');if(d){d.style.display='none';d.innerHTML='';}
+  const l=document.getElementById('cubeList');if(l)l.style.display='block';
+  const i=document.getElementById('cubeIntro');if(i)i.style.display='block';
 }
 
 /* ============================================================
@@ -949,7 +1070,7 @@ function scMove(d){scMoveIdx=Math.max(0,Math.min(scFlat.length-1,scMoveIdx+d));s
 function scFinish(){celebrate('🎉','CUBE SOLVED!','You followed every step!');scMode='intro';scRender();}
 
 /* ---------- init ---------- */
-renderTimes();renderStep();renderVideos();newScramble();checkBadges(true);
+renderTimes();renderStep();renderVideos();renderCubes();newScramble();
 </script>
 </body>
 </html>

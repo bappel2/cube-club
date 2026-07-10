@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Club</title>
+<style>
+  :root{
+    --white:#f8f8f8; --yellow:#ffd500; --red:#e23b3b; --orange:#ff8a00;
+    --blue:#2b7fff; --green:#38c66d; --ink:#20233a; --paper:#fff;
+    --bg1:#6a5cff; --bg2:#2b7fff;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;font-family:"Baloo 2","Comic Sans MS","Trebuchet MS",system-ui,sans-serif}
+  body{
+    min-height:100vh;color:var(--ink);
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    padding:16px;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+  header.top{display:flex;align-items:center;gap:12px;margin:6px 0 18px}
+  .logo{font-size:34px;font-weight:800;color:#fff;letter-spacing:.5px;text-shadow:0 3px 0 rgba(0,0,0,.15)}
+  .logo .cube{display:inline-block;transform:rotate(-8deg)}
+  .backbtn{
+    border:none;background:#ffffff;color:var(--ink);font-weight:800;font-size:18px;
+    padding:10px 16px;border-radius:16px;cursor:pointer;box-shadow:0 4px 0 rgba(0,0,0,.15);
+  }
+  .backbtn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  .screen{display:none;animation:pop .25s ease}
+  .screen.active{display:block}
+  @keyframes pop{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
+
+  /* HOME */
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .tile{
+    border:none;border-radius:26px;padding:26px 16px;cursor:pointer;color:#fff;
+    font-size:24px;font-weight:800;box-shadow:0 8px 0 rgba(0,0,0,.18);
+    display:flex;flex-direction:column;align-items:center;gap:10px;min-height:150px;justify-content:center;
+    transition:transform .05s;
+  }
+  .tile:active{transform:translateY(5px);box-shadow:0 3px 0 rgba(0,0,0,.18)}
+  .tile .emoji{font-size:52px}
+  .tile.solve{background:linear-gradient(150deg,#38c66d,#1ea85a)}
+  .tile.timer{background:linear-gradient(150deg,#ff8a00,#e23b3b)}
+  .tile.videos{background:linear-gradient(150deg,#2b7fff,#6a5cff)}
+  .tile.cubes{background:linear-gradient(150deg,#ffd500,#ff8a00);color:#5a3d00}
+  .hello{background:#fff;border-radius:22px;padding:16px 20px;margin-bottom:16px;font-size:18px;font-weight:700}
+
+  .card{background:#fff;border-radius:22px;padding:20px;box-shadow:0 8px 0 rgba(0,0,0,.12);margin-bottom:16px}
+  h2.title{color:#fff;font-size:28px;margin:4px 0 16px;text-shadow:0 3px 0 rgba(0,0,0,.15)}
+  .big-btn{
+    border:none;border-radius:18px;padding:16px 22px;font-size:20px;font-weight:800;cursor:pointer;
+    color:#fff;background:linear-gradient(150deg,#38c66d,#1ea85a);box-shadow:0 5px 0 rgba(0,0,0,.15);
+  }
+  .big-btn.alt{background:linear-gradient(150deg,#2b7fff,#6a5cff)}
+  .big-btn.warn{background:linear-gradient(150deg,#e23b3b,#b02020)}
+  .big-btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+  .big-btn:disabled{opacity:.5}
+
+  /* TIMER */
+  .timer-pad{
+    background:linear-gradient(150deg,#20233a,#3a3f66);border-radius:24px;color:#fff;text-align:center;
+    padding:30px 16px;user-select:none;cursor:pointer;margin-bottom:16px;
+  }
+  .scramble{font-size:22px;letter-spacing:2px;font-weight:800;background:rgba(255,255,255,.12);
+    padding:12px;border-radius:14px;margin-bottom:16px;min-height:26px}
+  .clock{font-size:64px;font-weight:800;font-variant-numeric:tabular-nums}
+  .clock.ready{color:#ffd500}
+  .clock.set{color:#38c66d}
+  .hint{opacity:.8;margin-top:8px;font-size:15px}
+  .stats{display:flex;gap:12px}
+  .stat{flex:1;background:#fff;border-radius:16px;padding:14px;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.1)}
+  .stat .n{font-size:26px;font-weight:800}
+  .stat .l{font-size:13px;color:#666;font-weight:700}
+  .times-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .time-chip{background:#eef;border-radius:12px;padding:6px 12px;font-weight:700}
+  .best-pop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:50;
+    background:rgba(0,0,0,.4);flex-direction:column;color:#fff;text-align:center}
+  .best-pop.show{display:flex;animation:pop .3s}
+  .best-pop .star{font-size:90px;animation:spin 1s linear}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+  /* SOLVE */
+  .step-face{display:flex;justify-content:center;margin:10px 0}
+  .algo{font-size:30px;font-weight:800;letter-spacing:4px;text-align:center;background:#20233a;color:#ffd500;
+    border-radius:14px;padding:14px;margin:12px 0}
+  .legend{font-size:14px;color:#555;background:#f2f4ff;border-radius:12px;padding:10px 14px;margin-top:10px;line-height:1.6}
+  .progress{height:16px;background:#e6e8f5;border-radius:10px;overflow:hidden;margin:12px 0}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,#38c66d,#2b7fff);transition:width .3s}
+  .step-nav{display:flex;justify-content:space-between;gap:12px;margin-top:6px}
+  .step-title{font-size:22px;font-weight:800;margin:0 0 6px}
+  .step-say{font-size:18px;line-height:1.5}
+
+  /* VIDEOS */
+  .vid-group h3{margin:6px 0 10px;font-size:20px}
+  .vid{display:flex;align-items:center;gap:12px;background:#f4f6ff;border-radius:16px;padding:12px;margin-bottom:10px;
+    text-decoration:none;color:var(--ink);font-weight:700;font-size:17px}
+  .vid .play{font-size:28px;background:#e23b3b;color:#fff;border-radius:12px;width:48px;height:48px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .note{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:14px;color:#6b5400;line-height:1.5}
+
+  /* CUBES */
+  .cube-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .cube-card{background:#fff;border-radius:18px;padding:16px;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.1);position:relative}
+  .cube-card .ico{font-size:46px}
+  .cube-card .nm{font-weight:800;font-size:18px;margin-top:6px}
+  .cube-card .tp{font-size:13px;color:#777;font-weight:700}
+  .fav{position:absolute;top:8px;left:10px;font-size:22px;cursor:pointer;background:none;border:none}
+  .del{position:absolute;top:8px;right:8px;font-size:16px;cursor:pointer;background:#ffe0e0;border:none;border-radius:10px;padding:4px 8px}
+  .empty{background:#fff;border-radius:18px;padding:24px;text-align:center;color:#777;font-weight:700}
+  input,select{font-family:inherit;font-size:18px;padding:12px;border-radius:12px;border:2px solid #dce0f0;width:100%;font-weight:700}
+  label{font-weight:800;display:block;margin:10px 0 4px}
+  .emoji-row{display:flex;flex-wrap:wrap;gap:8px}
+  .emoji-pick{font-size:28px;background:#f2f4ff;border:2px solid transparent;border-radius:12px;padding:6px 10px;cursor:pointer}
+  .emoji-pick.sel{border-color:#2b7fff;background:#e3ecff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="backbtn" id="backBtn" onclick="go('home')" style="display:none">← Back</button>
+    <div class="logo"><span class="cube">🧩</span> Cube Club</div>
+  </header>
+
+  <!-- HOME -->
+  <section class="screen active" id="home">
+    <div class="hello" id="hello">Hi! What do you want to do today?</div>
+    <div class="menu">
+      <button class="tile solve" onclick="go('solve')"><span class="emoji">🧠</span>Learn to Solve</button>
+      <button class="tile timer" onclick="go('timer')"><span class="emoji">⏱️</span>Speed Timer</button>
+      <button class="tile videos" onclick="go('videos')"><span class="emoji">📺</span>Watch Videos</button>
+      <button class="tile cubes" onclick="go('cubes')"><span class="emoji">🎁</span>My Cubes</button>
+    </div>
+  </section>
+
+  <!-- TIMER -->
+  <section class="screen" id="timer">
+    <h2 class="title">⏱️ Speed Timer</h2>
+    <div class="timer-pad" id="timerPad">
+      <div class="scramble" id="scramble">Press "New Scramble"</div>
+      <div class="clock" id="clock">0.00</div>
+      <div class="hint" id="timerHint">Hold the button (or SPACE), let go to start, tap to stop</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <button class="big-btn alt" style="flex:1" onclick="newScramble()">🔀 New Scramble</button>
+      <button class="big-btn warn" style="flex:1" onclick="clearTimes()">🗑️ Clear Times</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="bestT">–</div><div class="l">BEST</div></div>
+      <div class="stat"><div class="n" id="avgT">–</div><div class="l">AVERAGE</div></div>
+      <div class="stat"><div class="n" id="cntT">0</div><div class="l">SOLVES</div></div>
+    </div>
+    <div class="card"><b>Recent times</b><div class="times-list" id="timesList"></div></div>
+  </section>
+
+  <!-- SOLVE -->
+  <section class="screen" id="solve">
+    <h2 class="title">🧠 Learn to Solve</h2>
+    <div class="card">
+      <div class="progress"><i id="solveBar"></i></div>
+      <div style="font-weight:800;color:#666" id="stepCount"></div>
+      <div class="step-face" id="stepFace"></div>
+      <div class="step-title" id="stepTitle"></div>
+      <div class="step-say" id="stepSay"></div>
+      <div class="algo" id="stepAlgo"></div>
+      <div class="legend" id="stepLegend"></div>
+      <div class="step-nav">
+        <button class="big-btn alt" onclick="stepMove(-1)">← Back</button>
+        <button class="big-btn" onclick="stepMove(1)">Next →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIDEOS -->
+  <section class="screen" id="videos">
+    <h2 class="title">📺 Watch Videos</h2>
+    <div class="card" id="videoArea"></div>
+    <div class="note">👦➡️👨 <b>For grown-ups:</b> These videos are the only ones your kid can reach here — no open YouTube. To change the list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each video needs a title and a YouTube link.</div>
+  </section>
+
+  <!-- CUBES -->
+  <section class="screen" id="cubes">
+    <h2 class="title">🎁 My Cubes</h2>
+    <div class="card">
+      <b>Add a cube</b>
+      <label>Name</label>
+      <input id="cubeName" placeholder="My speedy blue cube" maxlength="24">
+      <label>Type</label>
+      <select id="cubeType">
+        <option>3x3</option><option>2x2</option><option>4x4</option><option>Pyraminx</option>
+        <option>Megaminx</option><option>Skewb</option><option>Mirror Cube</option><option>Other</option>
+      </select>
+      <label>Pick a picture</label>
+      <div class="emoji-row" id="emojiRow"></div>
+      <div style="margin-top:14px"><button class="big-btn" onclick="addCube()">➕ Add to my collection</button></div>
+    </div>
+    <div class="cube-grid" id="cubeGrid"></div>
+    <div class="empty" id="cubeEmpty">No cubes yet. Add your first one above! 🎉</div>
+  </section>
+</div>
+
+<div class="best-pop" id="bestPop" onclick="this.classList.remove('show')">
+  <div class="star">🌟</div>
+  <div style="font-size:34px;font-weight:800">NEW BEST TIME!</div>
+  <div style="font-size:22px;margin-top:8px" id="bestPopTime"></div>
+  <div style="margin-top:16px;opacity:.8">(tap to close)</div>
+</div>
+
+<script>
+/* ============================================================
+   VIDEOS — grown-ups can edit this list!
+   Add a YouTube link (video, playlist, or channel) and a title.
+   Group is just a heading. Delete the examples you don't want.
+   ============================================================ */
+const VIDEOS = [
+  { group:"⭐ Learn to Solve", title:"SoupTimmy channel", url:"https://www.youtube.com/results?search_query=souptimmy+rubiks+cube" },
+  { group:"⭐ Learn to Solve", title:"How to solve a 3x3 (add your favorite)", url:"https://www.youtube.com/results?search_query=how+to+solve+a+rubiks+cube+for+kids" },
+  { group:"🚀 Get Faster", title:"Add a speed tips video here", url:"https://www.youtube.com/results?search_query=rubiks+cube+speed+tips" },
+  { group:"🎪 Cool Tricks", title:"Add a cube tricks video here", url:"https://www.youtube.com/results?search_query=rubiks+cube+tricks" },
+];
+
+/* ---------- navigation ---------- */
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
+  window.scrollTo(0,0);
+  if(id==='timer' && !scramble.textContent.startsWith('R') ) newScramble();
+}
+
+/* ---------- storage helpers ---------- */
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}};
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+const clock=document.getElementById('clock');
+const scramble=document.getElementById('scramble');
+let times=load('cc_times',[]);
+let tState='idle', startAt=0, tick=null, holdTimer=null;
+
+function fmt(ms){return (ms/1000).toFixed(2)}
+function newScramble(){
+  const moves=['R','L','U','D','F','B'], suf=['',"'",'2'];
+  let out=[],last='';
+  for(let i=0;i<20;i++){let m;do{m=moves[Math.floor(Math.random()*6)]}while(m===last);last=m;out.push(m+suf[Math.floor(Math.random()*3)])}
+  scramble.textContent=out.join(' ');
+}
+function armReady(){ if(tState==='idle'){tState='ready';clock.classList.add('ready');clock.textContent='0.00';clock.classList.remove('set')} }
+function setGo(){ if(tState==='ready'){tState='set';clock.classList.remove('ready');clock.classList.add('set')} }
+function beginRun(){
+  if(tState!=='set')return;
+  tState='running';clock.classList.remove('set');startAt=performance.now();
+  tick=setInterval(()=>clock.textContent=fmt(performance.now()-startAt),31);
+}
+function stopRun(){
+  if(tState!=='running')return;
+  clearInterval(tick);const ms=performance.now()-startAt;clock.textContent=fmt(ms);
+  tState='idle';recordTime(ms);newScramble();
+}
+function recordTime(ms){
+  const prevBest = times.length?Math.min(...times):Infinity;
+  times.push(ms);if(times.length>50)times.shift();save('cc_times',times);renderTimes();
+  if(ms<prevBest){document.getElementById('bestPopTime').textContent=fmt(ms)+' seconds';
+    document.getElementById('bestPop').classList.add('show');}
+}
+function renderTimes(){
+  const best=times.length?Math.min(...times):null;
+  const avg=times.length?times.reduce((a,b)=>a+b,0)/times.length:null;
+  document.getElementById('bestT').textContent=best!=null?fmt(best):'–';
+  document.getElementById('avgT').textContent=avg!=null?fmt(avg):'–';
+  document.getElementById('cntT').textContent=times.length;
+  const list=document.getElementById('timesList');list.innerHTML='';
+  times.slice(-12).reverse().forEach(t=>{const c=document.createElement('span');c.className='time-chip';
+    c.textContent=fmt(t)+(t===best?' 👑':'');list.appendChild(c)});
+}
+function clearTimes(){ if(confirm('Clear all your times?')){times=[];save('cc_times',times);renderTimes();clock.textContent='0.00'} }
+
+/* pointer + keyboard controls */
+const pad=document.getElementById('timerPad');
+function pressStart(){
+  if(tState==='running'){stopRun();return}
+  armReady(); holdTimer=setTimeout(setGo,350); // hold ~0.35s to go green
+}
+function pressEnd(){
+  clearTimeout(holdTimer);
+  if(tState==='set'){beginRun();}
+  else if(tState==='ready'){tState='idle';clock.classList.remove('ready');}
+}
+pad.addEventListener('mousedown',pressStart);
+pad.addEventListener('mouseup',pressEnd);
+pad.addEventListener('touchstart',e=>{e.preventDefault();pressStart()},{passive:false});
+pad.addEventListener('touchend',e=>{e.preventDefault();pressEnd()},{passive:false});
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space' && document.getElementById('timer').classList.contains('active')){e.preventDefault();if(!e.repeat)pressStart();}
+});
+document.addEventListener('keyup',e=>{
+  if(e.code==='Space' && document.getElementById('timer').classList.contains('active')){e.preventDefault();pressEnd();}
+});
+
+/* ============================================================
+   SOLVE HELPER — beginner method, one step per screen
+   Each step draws a 3x3 face from a color grid (9 cells).
+   ============================================================ */
+const W='#f8f8f8',Y='#ffd500',R='#e23b3b',O='#ff8a00',B='#2b7fff',G='#38c66d',X='#c9cede';
+const STEPS=[
+  { t:"Meet your cube", face:[R,B,O, G,W,Y, O,G,B],
+    say:"A cube has 6 colors. The middle of each side never moves — the white middle is always the white side! Your job is to make every side one solid color.",
+    algo:"", legend:"Tip: turn the cube slowly and watch how the middles stay put." },
+  { t:"Learn the moves", face:[X,W,X, W,W,W, X,W,X],
+    say:"Letters tell you which side to turn. R = right side, L = left, U = up (top), D = down, F = front. A little mark ' means turn it the other way.",
+    algo:"R  U  R'  U'", legend:"R = turn right side UP • U = turn top side LEFT • R' = right side DOWN • U' = top side RIGHT. Practice this one — you'll use it a lot!" },
+  { t:"Step 1 — White cross", face:[X,W,X, W,W,W, X,W,X],
+    say:"Make a white PLUS on the white side. Match each white edge to its center color too, so it looks like a lowercase t on the sides.",
+    algo:"", legend:"Go slow. Find a white edge, then turn it down to where it belongs." },
+  { t:"Step 2 — White corners", face:[W,W,W, W,W,W, W,W,W],
+    say:"Now fill in the 4 white corners so the whole white side is finished. Put a white corner above its spot, then do the wiggle until it drops in.",
+    algo:"R'  D'  R  D", legend:"Repeat R' D' R D until the white corner pops into place. Then turn to the next corner." },
+  { t:"Step 3 — Middle row", face:[R,R,R, R,R,X, R,R,R],
+    say:"Flip the cube so white is on the BOTTOM. Now solve the middle belt — the side pieces with no yellow.",
+    algo:"U  R  U'  R'  U'  F'  U  F", legend:"This sends an edge to the RIGHT. For the LEFT, mirror it: U' L' U L U F U' F'." },
+  { t:"Step 4 — Yellow cross", face:[X,Y,X, Y,Y,Y, X,Y,X],
+    say:"Now make a yellow PLUS on top (just the plus, corners come later).",
+    algo:"F  R  U  R'  U'  F'", legend:"Do it once for an L-shape, again if you only see a line. Dot? You may do it a few times." },
+  { t:"Step 5 — Yellow face", face:[Y,Y,Y, Y,Y,Y, Y,Y,Y],
+    say:"Make the whole top yellow by turning the corners the right way.",
+    algo:"R  U  R'  U  R  U2  R'", legend:"Keep a yellow corner in the front-right. Repeat until all tops are yellow." },
+  { t:"Step 6 — Last corners", face:[Y,Y,Y, Y,Y,Y, Y,Y,Y],
+    say:"Put the corners in the right CORNER spots (colors on the sides don't match yet — that's ok).",
+    algo:"U  R  U'  L'  U  R'  U'  L", legend:"Repeat until every corner is in a spot where its 3 colors belong." },
+  { t:"Step 7 — Last edges", face:[Y,Y,Y, Y,Y,Y, Y,Y,Y],
+    say:"Slide the last 4 edges into place — and the cube is SOLVED! 🎉",
+    algo:"R  U'  R  U  R  U  R  U'  R'  U'  R2", legend:"Do it, then turn the top to check. Repeat if needed. You did it! 🏆" },
+];
+let stepI=0;
+function drawFace(cols){
+  let s='<svg width="150" height="150" viewBox="0 0 150 150">';
+  for(let i=0;i<9;i++){const x=(i%3)*48+3,y=Math.floor(i/3)*48+3;
+    s+=`<rect x="${x}" y="${y}" width="44" height="44" rx="8" fill="${cols[i]}" stroke="#20233a" stroke-width="3"/>`;}
+  return s+'</svg>';
+}
+function renderStep(){
+  const s=STEPS[stepI];
+  document.getElementById('stepFace').innerHTML=drawFace(s.face);
+  document.getElementById('stepTitle').textContent=s.t;
+  document.getElementById('stepSay').textContent=s.say;
+  const a=document.getElementById('stepAlgo');
+  a.style.display=s.algo?'block':'none';a.textContent=s.algo;
+  document.getElementById('stepLegend').innerHTML='💡 '+s.legend;
+  document.getElementById('stepCount').textContent='Step '+(stepI+1)+' of '+STEPS.length;
+  document.getElementById('solveBar').style.width=((stepI+1)/STEPS.length*100)+'%';
+}
+function stepMove(d){stepI=Math.max(0,Math.min(STEPS.length-1,stepI+d));renderStep();window.scrollTo(0,0);}
+
+/* ============================================================
+   VIDEOS render
+   ============================================================ */
+function renderVideos(){
+  const area=document.getElementById('videoArea');area.innerHTML='';
+  const groups={};VIDEOS.forEach(v=>{(groups[v.group]=groups[v.group]||[]).push(v)});
+  Object.keys(groups).forEach(g=>{
+    const wrap=document.createElement('div');wrap.className='vid-group';
+    wrap.innerHTML='<h3>'+g+'</h3>';
+    groups[g].forEach(v=>{
+      const a=document.createElement('a');a.className='vid';a.href=v.url;a.target='_blank';a.rel='noopener';
+      a.innerHTML='<span class="play">▶</span><span>'+v.title+'</span>';
+      wrap.appendChild(a);
+    });
+    area.appendChild(wrap);
+  });
+}
+
+/* ============================================================
+   MY CUBES
+   ============================================================ */
+const EMOJIS=['🧩','🟦','🟥','🟩','🟨','🟧','⬜','🔷','⭐','🌀','🎲','🔺'];
+let pickedEmoji='🧩';
+let cubes=load('cc_cubes',[]);
+function renderEmojiPicker(){
+  const row=document.getElementById('emojiRow');row.innerHTML='';
+  EMOJIS.forEach(e=>{const b=document.createElement('button');b.className='emoji-pick'+(e===pickedEmoji?' sel':'');
+    b.textContent=e;b.onclick=()=>{pickedEmoji=e;renderEmojiPicker()};row.appendChild(b)});
+}
+function addCube(){
+  const name=document.getElementById('cubeName').value.trim()||'My cube';
+  const type=document.getElementById('cubeType').value;
+  cubes.push({id:Date.now(),name,type,icon:pickedEmoji,fav:false});save('cc_cubes',cubes);
+  document.getElementById('cubeName').value='';renderCubes();
+}
+function toggleFav(id){const c=cubes.find(c=>c.id===id);if(c){c.fav=!c.fav;save('cc_cubes',cubes);renderCubes()}}
+function delCube(id){if(confirm('Remove this cube?')){cubes=cubes.filter(c=>c.id!==id);save('cc_cubes',cubes);renderCubes()}}
+function renderCubes(){
+  const grid=document.getElementById('cubeGrid');grid.innerHTML='';
+  document.getElementById('cubeEmpty').style.display=cubes.length?'none':'block';
+  const sorted=[...cubes].sort((a,b)=>b.fav-a.fav);
+  sorted.forEach(c=>{
+    const d=document.createElement('div');d.className='cube-card';
+    d.innerHTML=`<button class="fav" onclick="toggleFav(${c.id})">${c.fav?'⭐':'☆'}</button>
+      <button class="del" onclick="delCube(${c.id})">✕</button>
+      <div class="ico">${c.icon}</div><div class="nm">${c.name.replace(/</g,'&lt;')}</div><div class="tp">${c.type}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+/* ---------- init ---------- */
+renderTimes();renderStep();renderVideos();renderEmojiPicker();renderCubes();newScramble();
+</script>
+</body>
+</html>

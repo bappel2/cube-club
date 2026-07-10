@@ -43,7 +43,8 @@
   .tile.solve{background:linear-gradient(150deg,#38c66d,#1ea85a)}
   .tile.timer{background:linear-gradient(150deg,#ff8a00,#e23b3b)}
   .tile.videos{background:linear-gradient(150deg,#2b7fff,#6a5cff)}
-  .tile.cubes{background:linear-gradient(150deg,#ffd500,#ff8a00);color:#5a3d00}
+  .tile.trophy{background:linear-gradient(150deg,#ffb300,#ff7a00);color:#5a3d00}
+  .tile.games{background:linear-gradient(150deg,#ff5ca8,#a15cff)}
   .hello{background:#fff;border-radius:22px;padding:16px 20px;margin-bottom:16px;font-size:18px;font-weight:700}
 
   .card{background:#fff;border-radius:22px;padding:20px;box-shadow:0 8px 0 rgba(0,0,0,.12);margin-bottom:16px}
@@ -99,20 +100,49 @@
     display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .note{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:14px;color:#6b5400;line-height:1.5}
 
-  /* CUBES */
-  .cube-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .cube-card{background:#fff;border-radius:18px;padding:16px;text-align:center;box-shadow:0 5px 0 rgba(0,0,0,.1);position:relative}
-  .cube-card .ico{font-size:46px}
-  .cube-card .nm{font-weight:800;font-size:18px;margin-top:6px}
-  .cube-card .tp{font-size:13px;color:#777;font-weight:700}
-  .fav{position:absolute;top:8px;left:10px;font-size:22px;cursor:pointer;background:none;border:none}
-  .del{position:absolute;top:8px;right:8px;font-size:16px;cursor:pointer;background:#ffe0e0;border:none;border-radius:10px;padding:4px 8px}
-  .empty{background:#fff;border-radius:18px;padding:24px;text-align:center;color:#777;font-weight:700}
-  input,select{font-family:inherit;font-size:18px;padding:12px;border-radius:12px;border:2px solid #dce0f0;width:100%;font-weight:700}
-  label{font-weight:800;display:block;margin:10px 0 4px}
-  .emoji-row{display:flex;flex-wrap:wrap;gap:8px}
-  .emoji-pick{font-size:28px;background:#f2f4ff;border:2px solid transparent;border-radius:12px;padding:6px 10px;cursor:pointer}
-  .emoji-pick.sel{border-color:#2b7fff;background:#e3ecff}
+  /* TROPHY */
+  .streak-banner{background:linear-gradient(150deg,#ff8a00,#e23b3b);color:#fff;border-radius:22px;
+    padding:18px 20px;text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.15);margin-bottom:16px}
+  .streak-banner .flame{font-size:44px;line-height:1}
+  .streak-banner .big{font-size:30px;font-weight:800;margin:4px 0 2px}
+  .streak-banner .sub{font-size:14px;opacity:.95;font-weight:700}
+  .badge-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .badge{background:#fff;border-radius:18px;padding:18px 10px 14px;text-align:center;position:relative;
+    box-shadow:0 5px 0 rgba(0,0,0,.1)}
+  .badge.locked{opacity:.55;filter:grayscale(1)}
+  .badge.got{background:linear-gradient(160deg,#fff,#fff5d6);box-shadow:0 5px 0 rgba(255,180,0,.4)}
+  .badge .bico{font-size:46px;line-height:1}
+  .badge .bname{font-weight:800;font-size:16px;margin-top:8px;line-height:1.2}
+  .badge .bhow{font-size:12px;color:#8a8a8a;font-weight:700;margin-top:3px}
+  .badge .corner{position:absolute;top:8px;right:10px;font-size:16px}
+
+  /* GAMES */
+  .game-menu{display:grid;gap:14px}
+  .game-card{border:none;border-radius:22px;padding:20px;cursor:pointer;color:#fff;text-align:left;width:100%;
+    display:flex;align-items:center;gap:16px;box-shadow:0 7px 0 rgba(0,0,0,.15);transition:transform .05s}
+  .game-card:active{transform:translateY(4px);box-shadow:0 3px 0 rgba(0,0,0,.15)}
+  .game-card .gemoji{font-size:50px;flex-shrink:0}
+  .game-card .gname{font-size:22px;font-weight:800}
+  .game-card .gdesc{font-size:14px;font-weight:700;opacity:.95}
+  .game-card.memory{background:linear-gradient(150deg,#38c66d,#2b7fff)}
+  .game-card.pop{background:linear-gradient(150deg,#ff8a00,#e23b3b)}
+  .game-area{text-align:center}
+  .game-score{font-size:17px;font-weight:800;color:#555;margin-bottom:12px}
+  .game-msg{font-size:20px;font-weight:800;margin:14px 0 4px;min-height:26px}
+  .simon{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:330px;margin:0 auto}
+  .spad{aspect-ratio:1;border-radius:18px;border:4px solid rgba(0,0,0,.15);cursor:pointer;
+    box-shadow:0 5px 0 rgba(0,0,0,.15);transition:transform .05s,filter .1s;filter:brightness(.7)}
+  .spad:active{transform:translateY(3px)}
+  .spad.lit{filter:brightness(1.28);transform:scale(1.04)}
+  .pop-target{font-size:20px;font-weight:800;margin-bottom:8px}
+  .pop-swatch{display:inline-block;width:32px;height:32px;border-radius:8px;vertical-align:middle;
+    border:3px solid #20233a;margin-left:6px}
+  .pop-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;max-width:360px;margin:0 auto}
+  .pop-tile{aspect-ratio:1;border-radius:14px;border:3px solid rgba(0,0,0,.15);cursor:pointer;
+    box-shadow:0 4px 0 rgba(0,0,0,.12)}
+  .pop-tile:active{transform:translateY(2px)}
+  .timebar{height:14px;background:#e6e8f5;border-radius:8px;overflow:hidden;margin:12px auto;max-width:360px}
+  .timebar > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#38c66d,#e23b3b);transition:width .1s linear}
 </style>
 </head>
 <body>
@@ -129,7 +159,8 @@
       <button class="tile solve" onclick="go('solve')"><span class="emoji">🧠</span>Learn to Solve</button>
       <button class="tile timer" onclick="go('timer')"><span class="emoji">⏱️</span>Speed Timer</button>
       <button class="tile videos" onclick="go('videos')"><span class="emoji">📺</span>Watch Videos</button>
-      <button class="tile cubes" onclick="go('cubes')"><span class="emoji">🎁</span>My Cubes</button>
+      <button class="tile trophy" onclick="go('trophy')"><span class="emoji">🏆</span>Trophy Room</button>
+      <button class="tile games" onclick="go('games')" style="grid-column:1/-1"><span class="emoji">🎮</span>Cube Games</button>
     </div>
   </section>
 
@@ -178,31 +209,34 @@
     <div class="note">👦➡️👨 <b>For grown-ups:</b> These videos are the only ones your kid can reach here — no open YouTube. To change the list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each video needs a title and a YouTube link.</div>
   </section>
 
-  <!-- CUBES -->
-  <section class="screen" id="cubes">
-    <h2 class="title">🎁 My Cubes</h2>
-    <div class="card">
-      <b>Add a cube</b>
-      <label>Name</label>
-      <input id="cubeName" placeholder="My speedy blue cube" maxlength="24">
-      <label>Type</label>
-      <select id="cubeType">
-        <option>3x3</option><option>2x2</option><option>4x4</option><option>Pyraminx</option>
-        <option>Megaminx</option><option>Skewb</option><option>Mirror Cube</option><option>Other</option>
-      </select>
-      <label>Pick a picture</label>
-      <div class="emoji-row" id="emojiRow"></div>
-      <div style="margin-top:14px"><button class="big-btn" onclick="addCube()">➕ Add to my collection</button></div>
+  <!-- TROPHY -->
+  <section class="screen" id="trophy">
+    <h2 class="title">🏆 Trophy Room</h2>
+    <div class="streak-banner" id="streakBanner"></div>
+    <div class="badge-grid" id="badgeGrid"></div>
+  </section>
+
+  <!-- GAMES -->
+  <section class="screen" id="games">
+    <h2 class="title">🎮 Cube Games</h2>
+    <div class="game-menu" id="gamesMenu">
+      <button class="game-card memory" onclick="startMemory()">
+        <span class="gemoji">🌈</span>
+        <span><span class="gname">Color Memory</span><br><span class="gdesc">Watch the colors, then tap them back in order!</span></span>
+      </button>
+      <button class="game-card pop" onclick="startPop()">
+        <span class="gemoji">⚡</span>
+        <span><span class="gname">Color Pop</span><br><span class="gdesc">Tap the matching color as fast as you can!</span></span>
+      </button>
     </div>
-    <div class="cube-grid" id="cubeGrid"></div>
-    <div class="empty" id="cubeEmpty">No cubes yet. Add your first one above! 🎉</div>
+    <div class="card" id="gameStage" style="display:none"></div>
   </section>
 </div>
 
-<div class="best-pop" id="bestPop" onclick="this.classList.remove('show')">
-  <div class="star">🌟</div>
-  <div style="font-size:34px;font-weight:800">NEW BEST TIME!</div>
-  <div style="font-size:22px;margin-top:8px" id="bestPopTime"></div>
+<div class="best-pop" id="popup" onclick="closePop()">
+  <div class="star" id="popIcon">🌟</div>
+  <div style="font-size:34px;font-weight:800" id="popTitle">NEW BEST TIME!</div>
+  <div style="font-size:22px;margin-top:8px" id="popSub"></div>
   <div style="margin-top:16px;opacity:.8">(tap to close)</div>
 </div>
 
@@ -221,11 +255,14 @@ const VIDEOS = [
 
 /* ---------- navigation ---------- */
 function go(id){
+  if(document.getElementById('games').classList.contains('active') && id!=='games') stopGame();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
   window.scrollTo(0,0);
   if(id==='timer' && !scramble.textContent.startsWith('R') ) newScramble();
+  if(id==='trophy'){ checkBadges(); renderTrophy(); }
+  if(id==='games') showGamesMenu();
 }
 
 /* ---------- storage helpers ---------- */
@@ -262,8 +299,9 @@ function stopRun(){
 function recordTime(ms){
   const prevBest = times.length?Math.min(...times):Infinity;
   times.push(ms);if(times.length>50)times.shift();save('cc_times',times);renderTimes();
-  if(ms<prevBest){document.getElementById('bestPopTime').textContent=fmt(ms)+' seconds';
-    document.getElementById('bestPop').classList.add('show');}
+  markPracticedToday();
+  if(ms<prevBest) celebrate('🌟','NEW BEST TIME!',fmt(ms)+' seconds');
+  checkBadges();
 }
 function renderTimes(){
   const best=times.length?Math.min(...times):null;
@@ -351,7 +389,12 @@ function renderStep(){
   document.getElementById('stepCount').textContent='Step '+(stepI+1)+' of '+STEPS.length;
   document.getElementById('solveBar').style.width=((stepI+1)/STEPS.length*100)+'%';
 }
-function stepMove(d){stepI=Math.max(0,Math.min(STEPS.length-1,stepI+d));renderStep();window.scrollTo(0,0);}
+function stepMove(d){
+  stepI=Math.max(0,Math.min(STEPS.length-1,stepI+d));
+  if(stepI>load('cc_maxstep',0)) save('cc_maxstep',stepI);
+  markPracticedToday();checkBadges();
+  renderStep();window.scrollTo(0,0);
+}
 
 /* ============================================================
    VIDEOS render
@@ -372,39 +415,247 @@ function renderVideos(){
 }
 
 /* ============================================================
-   MY CUBES
+   CELEBRATION POPUP (queued, reused by best times + badges)
    ============================================================ */
-const EMOJIS=['🧩','🟦','🟥','🟩','🟨','🟧','⬜','🔷','⭐','🌀','🎲','🔺'];
-let pickedEmoji='🧩';
-let cubes=load('cc_cubes',[]);
-function renderEmojiPicker(){
-  const row=document.getElementById('emojiRow');row.innerHTML='';
-  EMOJIS.forEach(e=>{const b=document.createElement('button');b.className='emoji-pick'+(e===pickedEmoji?' sel':'');
-    b.textContent=e;b.onclick=()=>{pickedEmoji=e;renderEmojiPicker()};row.appendChild(b)});
+let popQueue=[];
+function celebrate(icon,title,sub){popQueue.push({icon,title,sub});if(popQueue.length===1)renderPop();}
+function renderPop(){
+  const p=popQueue[0];if(!p)return;
+  document.getElementById('popIcon').textContent=p.icon;
+  document.getElementById('popTitle').textContent=p.title;
+  document.getElementById('popSub').textContent=p.sub;
+  document.getElementById('popup').classList.add('show');
 }
-function addCube(){
-  const name=document.getElementById('cubeName').value.trim()||'My cube';
-  const type=document.getElementById('cubeType').value;
-  cubes.push({id:Date.now(),name,type,icon:pickedEmoji,fav:false});save('cc_cubes',cubes);
-  document.getElementById('cubeName').value='';renderCubes();
+function closePop(){
+  popQueue.shift();
+  document.getElementById('popup').classList.remove('show');
+  if(popQueue.length)setTimeout(renderPop,250);
 }
-function toggleFav(id){const c=cubes.find(c=>c.id===id);if(c){c.fav=!c.fav;save('cc_cubes',cubes);renderCubes()}}
-function delCube(id){if(confirm('Remove this cube?')){cubes=cubes.filter(c=>c.id!==id);save('cc_cubes',cubes);renderCubes()}}
-function renderCubes(){
-  const grid=document.getElementById('cubeGrid');grid.innerHTML='';
-  document.getElementById('cubeEmpty').style.display=cubes.length?'none':'block';
-  const sorted=[...cubes].sort((a,b)=>b.fav-a.fav);
-  sorted.forEach(c=>{
-    const d=document.createElement('div');d.className='cube-card';
-    d.innerHTML=`<button class="fav" onclick="toggleFav(${c.id})">${c.fav?'⭐':'☆'}</button>
-      <button class="del" onclick="delCube(${c.id})">✕</button>
-      <div class="ico">${c.icon}</div><div class="nm">${c.name.replace(/</g,'&lt;')}</div><div class="tp">${c.type}</div>`;
+
+/* ============================================================
+   TROPHY ROOM — badges + practice streak
+   ============================================================ */
+function dstr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function todayStr(){return dstr(new Date())}
+function yesterdayStr(){const d=new Date();d.setDate(d.getDate()-1);return dstr(d)}
+
+function markPracticedToday(){
+  const today=todayStr();
+  const st=load('cc_streak',{count:0,best:0,last:null});
+  if(st.last===today) return;                       // already counted today
+  st.count = (st.last===yesterdayStr()) ? (st.count||0)+1 : 1;
+  st.last=today;
+  if(st.count>(st.best||0)) st.best=st.count;
+  save('cc_streak',st);
+}
+function streakCurrent(st){
+  if(!st.last) return 0;
+  if(st.last===todayStr()||st.last===yesterdayStr()) return st.count||0;
+  return 0;                                          // streak has lapsed
+}
+
+const BADGES=[
+  {id:'first', icon:'🥇', name:'First Solve',   how:'Finish 1 solve',      check:s=>s.solves>=1},
+  {id:'five',  icon:'🖐️', name:'High Five',     how:'Do 5 solves',         check:s=>s.solves>=5},
+  {id:'ten',   icon:'🔟', name:'Ten Club',      how:'Do 10 solves',        check:s=>s.solves>=10},
+  {id:'sub2',  icon:'⚡', name:'Speedy',        how:'Solve under 2:00',    check:s=>s.best<120000},
+  {id:'sub1',  icon:'🚀', name:'Super Speedy',  how:'Solve under 1:00',    check:s=>s.best<60000},
+  {id:'master',icon:'🧠', name:'Cube Master',   how:'Reach the last step', check:s=>s.maxStep>=STEPS.length-1},
+  {id:'fire',  icon:'🔥', name:'On Fire',       how:'Practice 3 days',     check:s=>s.streakBest>=3},
+  {id:'star',  icon:'🌟', name:'Superstar',     how:'Practice 7 days',     check:s=>s.streakBest>=7},
+];
+function badgeStats(){
+  const t=load('cc_times',[]);
+  return {
+    solves:t.length,
+    best:t.length?Math.min(...t):Infinity,
+    maxStep:load('cc_maxstep',0),
+    streakBest:(load('cc_streak',{best:0}).best)||0,
+  };
+}
+function checkBadges(silent){
+  const stats=badgeStats();
+  const earned=BADGES.filter(b=>b.check(stats)).map(b=>b.id);
+  const known=load('cc_badges',[]);
+  const fresh=earned.filter(id=>!known.includes(id));
+  save('cc_badges',[...new Set([...known,...earned])]);
+  if(!silent) fresh.forEach(id=>{const b=BADGES.find(x=>x.id===id);celebrate(b.icon,'NEW BADGE!',b.name);});
+}
+function renderTrophy(){
+  const st=load('cc_streak',{count:0,best:0,last:null});
+  const cur=streakCurrent(st);
+  document.getElementById('streakBanner').innerHTML=
+    '<div class="flame">🔥</div>'+
+    '<div class="big">'+cur+' day'+(cur===1?'':'s')+' in a row!</div>'+
+    '<div class="sub">Best streak: '+(st.best||0)+' • Practice tomorrow to keep it going!</div>';
+  const stats=badgeStats();
+  const grid=document.getElementById('badgeGrid');grid.innerHTML='';
+  BADGES.forEach(b=>{
+    const got=b.check(stats);
+    const d=document.createElement('div');
+    d.className='badge '+(got?'got':'locked');
+    d.innerHTML='<div class="corner">'+(got?'✅':'🔒')+'</div>'+
+      '<div class="bico">'+b.icon+'</div>'+
+      '<div class="bname">'+b.name+'</div>'+
+      '<div class="bhow">'+(got?'Unlocked!':b.how)+'</div>';
     grid.appendChild(d);
   });
 }
 
+/* ============================================================
+   CUBE GAMES
+   ============================================================ */
+const GCOLORS=[
+  {n:'White', c:'#f8f8f8'},{n:'Yellow',c:'#ffd500'},{n:'Red',   c:'#e23b3b'},
+  {n:'Orange',c:'#ff8a00'},{n:'Blue',  c:'#2b7fff'},{n:'Green', c:'#38c66d'},
+];
+const ri=n=>Math.floor(Math.random()*n);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+let gameToken=0, popTimer=null;
+
+function showGamesMenu(){
+  stopGame();
+  document.getElementById('gamesMenu').style.display='grid';
+  document.getElementById('gameStage').style.display='none';
+}
+function stopGame(){
+  gameToken++;                                       // cancels pending game callbacks
+  if(popTimer){clearInterval(popTimer);popTimer=null;}
+}
+function openStage(html){
+  document.getElementById('gamesMenu').style.display='none';
+  const st=document.getElementById('gameStage');
+  st.style.display='block';
+  st.innerHTML='<button class="big-btn alt" style="margin-bottom:14px" onclick="showGamesMenu()">← Games</button>'+html;
+}
+
+/* ----- Color Memory (Simon style) ----- */
+let memSeq=[],memInput=[],memBusy=false,memBest=0;
+function startMemory(){
+  stopGame();
+  memSeq=[];memInput=[];memBusy=false;memBest=load('cc_mem_best',0);
+  openStage(
+    '<div class="game-area">'+
+      '<div class="game-score" id="memScore"></div>'+
+      '<div class="simon" id="simonGrid"></div>'+
+      '<div class="game-msg" id="memMsg">Watch closely…</div>'+
+      '<button class="big-btn" id="memGo" style="display:none">▶ Play again</button>'+
+    '</div>');
+  const grid=document.getElementById('simonGrid');
+  GCOLORS.forEach((col,i)=>{
+    const b=document.createElement('button');
+    b.className='spad';b.style.background=col.c;b.id='spad'+i;b.onclick=()=>memTap(i);
+    grid.appendChild(b);
+  });
+  updateMemScore();
+  memNext();
+}
+function updateMemScore(){
+  const el=document.getElementById('memScore');
+  if(el) el.textContent='Round: '+memSeq.length+'   •   Best: '+memBest;
+}
+function memNext(){
+  if(!document.getElementById('simonGrid'))return;
+  memInput=[];memSeq.push(ri(6));updateMemScore();flashSeq();
+}
+async function flashSeq(){
+  const my=gameToken;memBusy=true;
+  const msg=document.getElementById('memMsg');if(msg)msg.textContent='Watch closely…';
+  await wait(500);
+  for(const idx of memSeq){
+    if(my!==gameToken)return;
+    const p=document.getElementById('spad'+idx);if(!p)return;
+    p.classList.add('lit');await wait(480);p.classList.remove('lit');await wait(180);
+  }
+  if(my!==gameToken)return;
+  memBusy=false;
+  const m=document.getElementById('memMsg');if(m)m.textContent='Your turn! 👆';
+}
+function memTap(i){
+  if(memBusy)return;
+  const p=document.getElementById('spad'+i);p.classList.add('lit');setTimeout(()=>p.classList.remove('lit'),160);
+  memInput.push(i);
+  const pos=memInput.length-1;
+  if(memInput[pos]!==memSeq[pos]){memOver();return;}
+  if(memInput.length===memSeq.length){
+    if(memSeq.length>memBest){memBest=memSeq.length;save('cc_mem_best',memBest);}
+    updateMemScore();
+    document.getElementById('memMsg').textContent='Nice! ⭐';
+    memBusy=true;
+    const my=gameToken;
+    setTimeout(()=>{if(my===gameToken)memNext();},700);
+  }
+}
+function memOver(){
+  memBusy=true;
+  document.getElementById('memMsg').textContent='Oops! You remembered '+(memSeq.length-1)+' 🎯';
+  const go=document.getElementById('memGo');go.style.display='inline-block';go.onclick=startMemory;
+}
+
+/* ----- Color Pop (speed matching) ----- */
+let popScore=0,popLeft=0,popTarget=0,popBest=0;
+function startPop(){
+  stopGame();
+  popScore=0;popLeft=30;popBest=load('cc_pop_best',0);
+  openStage(
+    '<div class="game-area">'+
+      '<div class="pop-target" id="popTarget"></div>'+
+      '<div class="timebar"><i id="popBar"></i></div>'+
+      '<div class="game-score" id="popScoreEl"></div>'+
+      '<div class="pop-grid" id="popGrid"></div>'+
+      '<div class="game-msg" id="popMsg"></div>'+
+    '</div>');
+  updatePopScore();
+  newPopRound();
+  const my=gameToken;
+  popTimer=setInterval(()=>{
+    if(my!==gameToken){clearInterval(popTimer);return;}
+    popLeft-=0.1;
+    const bar=document.getElementById('popBar');
+    if(popLeft<=0){popLeft=0;if(bar)bar.style.width='0%';popDone();return;}
+    if(bar)bar.style.width=(popLeft/30*100)+'%';
+  },100);
+}
+function updatePopScore(){
+  const el=document.getElementById('popScoreEl');
+  if(el) el.textContent='Score: '+popScore+'   •   Best: '+popBest;
+}
+function newPopRound(){
+  if(!document.getElementById('popGrid'))return;
+  popTarget=ri(6);
+  document.getElementById('popTarget').innerHTML=
+    'Tap the '+GCOLORS[popTarget].n+' <span class="pop-swatch" style="background:'+GCOLORS[popTarget].c+'"></span>';
+  const tiles=[];for(let i=0;i<8;i++)tiles.push(ri(6));
+  if(!tiles.includes(popTarget))tiles[ri(8)]=popTarget;   // guarantee a match exists
+  const grid=document.getElementById('popGrid');grid.innerHTML='';
+  tiles.forEach(ci=>{
+    const b=document.createElement('button');b.className='pop-tile';b.style.background=GCOLORS[ci].c;
+    b.onclick=()=>popTap(ci);grid.appendChild(b);
+  });
+}
+function popTap(ci){
+  if(popLeft<=0)return;
+  const msg=document.getElementById('popMsg');
+  if(ci===popTarget){
+    popScore++;
+    if(popScore>popBest){popBest=popScore;save('cc_pop_best',popBest);}
+    msg.textContent='';newPopRound();
+  }else{
+    popScore=Math.max(0,popScore-1);msg.textContent='Not that one! 🙈';
+  }
+  updatePopScore();
+}
+function popDone(){
+  if(popTimer){clearInterval(popTimer);popTimer=null;}
+  const grid=document.getElementById('popGrid');if(grid)grid.innerHTML='';
+  document.getElementById('popTarget').innerHTML='⏰ Time!';
+  document.getElementById('popMsg').innerHTML=
+    'You scored <b>'+popScore+'</b>! 🎉<br>'+
+    '<button class="big-btn" style="margin-top:12px" onclick="startPop()">▶ Play again</button>';
+}
+
 /* ---------- init ---------- */
-renderTimes();renderStep();renderVideos();renderEmojiPicker();renderCubes();newScramble();
+renderTimes();renderStep();renderVideos();newScramble();checkBadges(true);
 </script>
 </body>
 </html>

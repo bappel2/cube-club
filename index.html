@@ -192,6 +192,17 @@
   .sc-tip{background:#e6fbf7;border:2px dashed #12c2b8;border-radius:14px;padding:12px 14px;font-size:14px;
     color:#0a6b5f;line-height:1.5;margin-top:14px;font-weight:700}
   .sc-progress{text-align:center;font-weight:800;color:#555;font-size:15px;margin-bottom:10px}
+  .sc-tabs{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;margin:2px 0 12px}
+  .sc-tab{width:38px;height:38px;border-radius:10px;border:3px solid #cfd4ea;cursor:pointer;position:relative;padding:0;box-shadow:inset 0 2px 4px rgba(0,0,0,.18)}
+  .sc-tab.cur{border-color:#20233a;box-shadow:0 0 0 3px #ffd54d,inset 0 2px 4px rgba(0,0,0,.18)}
+  .sc-tab b{position:absolute;right:-6px;top:-8px;font-size:15px;line-height:1}
+  .sc-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .sc-actionbtn{border:none;border-radius:14px;padding:10px 15px;font-size:15px;font-weight:800;cursor:pointer;color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+  .sc-actionbtn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.15)}
+  .sc-actionbtn.save{background:linear-gradient(150deg,#12a5c2,#0a7fa0)}
+  .sc-actionbtn.reset{background:#9aa0b8}
+  .sc-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);z-index:100;background:#20233a;color:#fff;font-weight:800;font-size:17px;padding:12px 22px;border-radius:16px;box-shadow:0 8px 24px rgba(0,0,0,.3);opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+  .sc-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   .sc-facewrap{max-width:300px;margin:0 auto}
   .sc-hintrow{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0}
   .sc-dot{width:22px;height:22px;border-radius:7px;border:2px solid #20233a;display:inline-block;flex-shrink:0}
@@ -1125,13 +1136,31 @@ function scRender(){
   else if(scMode==='guide'){area.innerHTML=scGuideHTML();scInitCube3D();}
 }
 function scIntroHTML(){
+  const s=scSavedCube();
+  const filled=s?FACE_ORDER.filter(f=>s.entry[f].every(c=>c)).length:0;
+  const resume=s?'<button class="big-btn" style="background:linear-gradient(150deg,#38c66d,#1ea85a);width:100%;box-sizing:border-box;margin-bottom:14px" onclick="scResume()">▶️ Resume my cube — '+filled+' of 6 sides done</button>':'';
   return '<div class="card">'+
+   resume+
    '<div style="font-size:19px;line-height:1.5;font-weight:700">🪄 I can figure out how to solve <b>YOUR</b> cube!<br>First I need to see all six sides.</div>'+
    '<div class="sc-tip">📱 <b>How it works:</b> I show you one side at a time. Around each side are little colored dots — turn your cube so the dots match, then tap the squares to match your cube. Take your time!</div>'+
-   '<div style="margin-top:16px"><button class="big-btn" onclick="scBegin()">📷 Start entering my cube</button></div>'+
+   '<div style="margin-top:16px"><button class="big-btn'+(s?' alt':'')+'" onclick="scBegin()">📷 Start '+(s?'a new cube':'entering my cube')+'</button></div>'+
    '</div>';
 }
 function scBegin(){ scReset(); scMode='entry'; sc3d.mode='entry'; scSetFaceView(0); scRender(); }
+/* --- kid-requested: save-for-later / resume, jump-to-any-side, start-over-anywhere --- */
+function scValidSaved(s){return !!(s&&s.entry&&FACE_ORDER.every(f=>Array.isArray(s.entry[f])&&s.entry[f].length===9));}
+function scSavedCube(){const s=load('cc_saved_cube',null);return scValidSaved(s)?s:null;}
+function scSaveForLater(){save('cc_saved_cube',{entry:scEntry,faceIdx:scFaceIdx});scToast('💾 Saved! Come back any time.');}
+function scResume(){const s=scSavedCube();if(!s)return;scReset();scEntry=s.entry;scFaceIdx=Math.max(0,Math.min(5,s.faceIdx||0));scMode='entry';sc3d.mode='entry';scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}
+function scStartOver(){if(confirm('Start over with a brand-new cube? The colors you painted will be cleared.')){scReset();scMode='intro';scRender();window.scrollTo(0,0);}}
+function scGoFace(i){if(i<0||i>5)return;scFaceIdx=i;scFixMsg='';scSetFaceView(i);scRender();window.scrollTo(0,0);}
+function scTabsHTML(){
+  return '<div class="sc-tabs">'+FACE_ORDER.map((f,i)=>{
+    const doneF=scEntry[f].every(c=>c), bd=(f==='D')?'border-color:#b9bfd6;':'';
+    return '<button class="sc-tab'+(i===scFaceIdx?' cur':'')+'" style="background:'+SCOLOR[f]+';'+bd+'" onclick="scGoFace('+i+')" title="'+SNAME[f]+' side">'+(doneF?'<b>✅</b>':'')+'</button>';
+  }).join('')+'</div>';
+}
+function scToast(msg){let t=document.getElementById('scToast');if(!t){t=document.createElement('div');t.id='scToast';t.className='sc-toast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('show');clearTimeout(scToast._t);scToast._t=setTimeout(function(){t.classList.remove('show');},1800);}
 function scSwatch(letter,sel){return '<button class="sc-sw'+(sel?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scPick(\''+letter+'\')" title="'+SNAME[letter]+'"></button>';}
 function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}
 function scEntryHTML(){
@@ -1148,7 +1177,7 @@ function scEntryHTML(){
   const leftBtn = scFaceIdx>0
     ? '<button class="big-btn alt" onclick="scPrevFace()">← Back</button>'
     : (scEditing ? '<button class="big-btn alt" onclick="scCancelFix()" style="background:#888">✕ Keep steps</button>'
-                 : '<button class="big-btn alt" onclick="scMode=\'intro\';scRender()">← Start over</button>');
+                 : '<button class="big-btn alt" disabled style="opacity:.45">← Back</button>');
   const rightBtn = scFaceIdx<5
     ? '<button class="big-btn" onclick="scNextFace()"'+(done?'':' disabled')+'>Next →</button>'
     : (scEditing ? ''
@@ -1159,6 +1188,7 @@ function scEntryHTML(){
    scCube3DHTML(140,f)+
    '<div class="sc3d-cap">'+(scEditing?'👆 Spin it to check every side against your real cube':'👆 Spin it — your cube fills in as you go!')+'</div>'+
    '<div class="sc-progress">Side '+(scFaceIdx+1)+' of 6 &nbsp;•&nbsp; the <b style="color:'+(f==='D'?'#999':SCOLOR[f])+'">'+SNAME[f]+'</b> side (middle is '+SNAME[f]+')</div>'+
+   scTabsHTML()+
    '<div class="sc-facewrap">'+
      '<div class="sc-hintrow">'+scDot(nb[0])+'</div>'+
      '<div class="sc-hintrow">'+scDot(nb[3])+'<div class="sc-grid">'+grid+'</div>'+scDot(nb[1])+'</div>'+
@@ -1170,6 +1200,7 @@ function scEntryHTML(){
      '<button class="big-btn" onclick="scClearFace()" style="background:#888">Clear</button>'+
      rightBtn+
    '</div>'+
+   (!scEditing?'<div class="sc-actions"><button class="sc-actionbtn save" onclick="scSaveForLater()">💾 Save for later</button><button class="sc-actionbtn reset" onclick="scStartOver()">↺ Start over</button></div>':'')+
    (scEditing?'<button class="big-btn" style="background:linear-gradient(150deg,#38c66d,#2b7fff);width:100%;box-sizing:border-box;margin-top:10px" onclick="scSolveAgain()"'+(allDone?'':' disabled')+'>✅ Fixed it — solve again!</button>':'')+
    '</div>';
 }
@@ -1381,6 +1412,7 @@ function scPreviewHTML(){
     '</div>'+
     '<div class="step-nav" style="margin-top:10px">'+
       '<button class="big-btn alt" onclick="scBackToEntry()">← Fix a side</button>'+
+      '<button class="sc-actionbtn save" onclick="scSaveForLater()">💾 Save for later</button>'+
     '</div></div>';
 }
 

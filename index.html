@@ -93,11 +93,21 @@
   .step-say{font-size:18px;line-height:1.5}
 
   /* VIDEOS */
-  .vid-group h3{margin:6px 0 10px;font-size:20px}
-  .vid{display:flex;align-items:center;gap:12px;background:#f4f6ff;border-radius:16px;padding:12px;margin-bottom:10px;
-    text-decoration:none;color:var(--ink);font-weight:700;font-size:17px}
-  .vid .play{font-size:28px;background:#e23b3b;color:#fff;border-radius:12px;width:48px;height:48px;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .vid-group h3{margin:14px 0 10px;font-size:20px}
+  .vid{display:flex;align-items:center;gap:12px;background:#f4f6ff;border:none;border-radius:16px;padding:10px;
+    margin-bottom:10px;width:100%;text-align:left;cursor:pointer;color:var(--ink);font-weight:700}
+  .vid:active{transform:translateY(2px)}
+  .vid .thumb{position:relative;width:118px;height:66px;border-radius:12px;overflow:hidden;flex-shrink:0;background:#dfe3f5}
+  .vid .thumb img{width:100%;height:100%;object-fit:cover;display:block}
+  .vid .thumb .pbadge{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:26px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6)}
+  .vid .meta{min-width:0}
+  .vid .meta .vt{display:block;font-size:16px;line-height:1.25}
+  .vid .meta .vby{display:block;font-size:13px;color:#777;margin-top:3px}
+  .video-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#000;
+    box-shadow:0 6px 0 rgba(0,0,0,.15)}
+  .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  .now-playing{font-weight:800;color:#fff;margin-top:12px;font-size:18px;text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.15)}
   .note{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:14px;color:#6b5400;line-height:1.5}
 
   /* TROPHY */
@@ -205,8 +215,9 @@
   <!-- VIDEOS -->
   <section class="screen" id="videos">
     <h2 class="title">📺 Watch Videos</h2>
+    <div id="videoPlayer" style="display:none"></div>
     <div class="card" id="videoArea"></div>
-    <div class="note">👦➡️👨 <b>For grown-ups:</b> These videos are the only ones your kid can reach here — no open YouTube. To change the list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each video needs a title and a YouTube link.</div>
+    <div class="note" id="videoNote">👦➡️👨 <b>For grown-ups:</b> These are the only videos your kid can reach — they play right here <b>inside the app</b>, so he never lands on the open YouTube feed. To change the list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each entry needs a title, a channel name, and the video <b>id</b> (the part after <b>v=</b> in a youtube.com/watch?v=<b>ID</b> link).</div>
   </section>
 
   <!-- TROPHY -->
@@ -246,16 +257,23 @@
    Add a YouTube link (video, playlist, or channel) and a title.
    Group is just a heading. Delete the examples you don't want.
    ============================================================ */
+/* Each video: group (heading), title (short kid label), by (channel), id (the
+   part after v= in a youtube.com/watch?v=ID link). Videos play inside the app. */
 const VIDEOS = [
-  { group:"⭐ Learn to Solve", title:"SoupTimmy channel", url:"https://www.youtube.com/results?search_query=souptimmy+rubiks+cube" },
-  { group:"⭐ Learn to Solve", title:"How to solve a 3x3 (add your favorite)", url:"https://www.youtube.com/results?search_query=how+to+solve+a+rubiks+cube+for+kids" },
-  { group:"🚀 Get Faster", title:"Add a speed tips video here", url:"https://www.youtube.com/results?search_query=rubiks+cube+speed+tips" },
-  { group:"🎪 Cool Tricks", title:"Add a cube tricks video here", url:"https://www.youtube.com/results?search_query=rubiks+cube+tricks" },
+  { group:"⭐ Learn to Solve", title:"Solve It in 10 Minutes",            by:"J Perm",            id:"7Ron6MN45LY" },
+  { group:"⭐ Learn to Solve", title:"So Easy a 3-Year-Old Can Do It",     by:"Kevin Gittemeier",  id:"9spDGBeWl1o" },
+  { group:"⭐ Learn to Solve", title:"The Easiest Tutorial Ever",          by:"Leila Gharani",     id:"0Ti5CKsQLts" },
+  { group:"🚀 Get Faster",     title:"Finger Tricks: How to Turn Fast",    by:"CubeHead",          id:"KWe4SNIMtrg" },
+  { group:"🚀 Get Faster",     title:"Finger Tricks Tutorial",            by:"J Perm",            id:"wLuVF9Dk3AQ" },
+  { group:"🎪 Cool Tricks",    title:"Top 10 Cube Patterns",              by:"Tingman",           id:"vtY7hOIAj6E" },
+  { group:"🎪 Cool Tricks",    title:"Make a Checkerboard",               by:"DR. CUBER",         id:"9hyHXtrxQUk" },
+  { group:"😄 Just for Fun",   title:"Solve It in Under 60 Seconds (ft. SoupTimmy)", by:"Hafu Go", id:"eoXd1oaZSFI" },
 ];
 
 /* ---------- navigation ---------- */
 function go(id){
   if(document.getElementById('games').classList.contains('active') && id!=='games') stopGame();
+  if(document.getElementById('videos').classList.contains('active') && id!=='videos') closeVideo();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
@@ -399,19 +417,43 @@ function stepMove(d){
 /* ============================================================
    VIDEOS render
    ============================================================ */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function renderVideos(){
   const area=document.getElementById('videoArea');area.innerHTML='';
   const groups={};VIDEOS.forEach(v=>{(groups[v.group]=groups[v.group]||[]).push(v)});
   Object.keys(groups).forEach(g=>{
     const wrap=document.createElement('div');wrap.className='vid-group';
-    wrap.innerHTML='<h3>'+g+'</h3>';
+    const h=document.createElement('h3');h.textContent=g;wrap.appendChild(h);
     groups[g].forEach(v=>{
-      const a=document.createElement('a');a.className='vid';a.href=v.url;a.target='_blank';a.rel='noopener';
-      a.innerHTML='<span class="play">▶</span><span>'+v.title+'</span>';
-      wrap.appendChild(a);
+      const b=document.createElement('button');b.className='vid';
+      b.onclick=()=>playVideo(v.id,v.title);
+      b.innerHTML='<span class="thumb"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/'+esc(v.id)+'/mqdefault.jpg"><span class="pbadge">▶</span></span>'+
+        '<span class="meta"><span class="vt">'+esc(v.title)+'</span><span class="vby">'+esc(v.by)+'</span></span>';
+      wrap.appendChild(b);
     });
     area.appendChild(wrap);
   });
+}
+/* Locked-down inline player: youtube-nocookie, related videos limited to the
+   same channel (rel=0). Playback stays in the app; removing the iframe stops it. */
+function playVideo(id,title){
+  const src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+
+    '?rel=0&modestbranding=1&playsinline=1&autoplay=1';
+  document.getElementById('videoPlayer').innerHTML=
+    '<button class="big-btn alt" style="margin-bottom:12px" onclick="closeVideo()">← Back to videos</button>'+
+    '<div class="video-frame"><iframe src="'+src+'" title="'+esc(title)+'" '+
+      'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'+
+    '<div class="now-playing">▶ '+esc(title)+'</div>';
+  document.getElementById('videoPlayer').style.display='block';
+  document.getElementById('videoArea').style.display='none';
+  document.getElementById('videoNote').style.display='none';
+  window.scrollTo(0,0);
+}
+function closeVideo(){
+  const p=document.getElementById('videoPlayer');
+  p.innerHTML='';p.style.display='none';                 // dropping the iframe stops playback
+  document.getElementById('videoArea').style.display='block';
+  document.getElementById('videoNote').style.display='block';
 }
 
 /* ============================================================

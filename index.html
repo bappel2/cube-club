@@ -274,8 +274,13 @@
   .sc-center{border-radius:11px;border:3px solid #20233a}
   .sc-palhint{text-align:center;font-weight:800;color:#666;margin-top:14px;font-size:15px}
   .sc-pal{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
-  .sc-sw{width:48px;height:48px;border-radius:13px;border:4px solid transparent;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+  .sc-cell.cursor{border-color:#7a3cff;box-shadow:0 0 0 4px rgba(122,60,255,.34);animation:scpulse 1.1s ease-in-out infinite}
+  @keyframes scpulse{0%,100%{box-shadow:0 0 0 4px rgba(122,60,255,.34)}50%{box-shadow:0 0 0 8px rgba(122,60,255,.12)}}
+  .sc-sw{position:relative;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:13px;border:4px solid transparent;cursor:pointer;box-shadow:0 3px 0 rgba(0,0,0,.15)}
   .sc-sw.sel{border-color:#20233a;transform:translateY(-3px)}
+  .sc-swk{font-size:13px;font-weight:900;opacity:.8;pointer-events:none;text-shadow:0 1px 1px rgba(0,0,0,.28)}
+  .sc-palsub{text-align:center;color:#8890ab;font-size:12px;font-weight:700;margin:-4px 0 12px}
+  .sc-palsub kbd{background:#e9ebf6;border-radius:5px;padding:1px 5px;font-weight:900;color:#5b6b8c;font-family:inherit}
   .sc-steps{display:flex;justify-content:center;gap:6px;margin:10px 0}
   .sc-stepchip{width:26px;height:26px;border-radius:9px;background:#e6e8f5;color:#888;font-weight:800;
     display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -603,6 +608,21 @@ document.addEventListener('keydown',e=>{
 });
 document.addEventListener('keyup',e=>{
   if(e.code==='Space' && document.getElementById('timer').classList.contains('active')){e.preventDefault();pressEnd();}
+});
+/* Solve-My-Cube entry: type a colour letter (W Y R O B G) to fill the glowing square and auto-advance;
+   Enter = next, Backspace = fix, arrows = move. Only while the entry screen is showing. */
+document.addEventListener('keydown',e=>{
+  if(scMode!=='entry' || !document.getElementById('fixer').classList.contains('active'))return;
+  const t=e.target; if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
+  const k=e.key, up=(k.length===1)?k.toUpperCase():k;
+  if(SCKEY[up]){ e.preventDefault(); scSetColor(SCKEY[up]); return; }
+  if(k==='Backspace'){ e.preventDefault(); scCursorStep(-1); scEntry[FACE_ORDER[scFaceIdx]][scCursor]=null; scFixMsg=''; scRender(); return; }
+  if(k==='Enter'){ e.preventDefault();
+    const allIn=FACE_ORDER.every(ff=>scEntry[ff].every(c=>c));
+    if(scEntry[FACE_ORDER[scFaceIdx]].every(c=>c)){ if(allIn && !scEditing) scShowPreview(); else if(!scEditing) scOnFaceDone(); }
+    else { scAdvanceCursor(); scRender(); } return; }
+  if(k==='ArrowRight'||k==='ArrowDown'){ e.preventDefault(); scCursorStep(1); scRender(); return; }
+  if(k==='ArrowLeft'||k==='ArrowUp'){ e.preventDefault(); scCursorStep(-1); scRender(); return; }
 });
 
 /* ============================================================
@@ -1313,10 +1333,12 @@ const MOVEHELP={
  "F":"front → turn ↻","F'":"front → turn ↺","F2":"front → half around",
  "B":"back → turn ↻","B'":"back → turn ↺","B2":"back → half around",
 };
-let scMode='intro', scFaceIdx=0, scPaintColor='D', scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null, scQuick=false, scEditing=false, scLastMode='learn', scFixMsg='';
+let scMode='intro', scFaceIdx=0, scPaintColor='D', scCursor=0, scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null, scQuick=false, scEditing=false, scLastMode='learn', scFixMsg='';
+const SC_ORDER=[0,1,2,3,5,6,7,8];                       /* the 8 non-centre squares, reading order (skips centre 4) */
+const SCKEY={W:'D',Y:'U',R:'L',O:'R',B:'B',G:'F'};      /* typed colour initial -> internal face letter */
 function scReset(){
   scEntry={};FACE_ORDER.forEach(f=>{const a=new Array(9).fill(null);a[4]=f;scEntry[f]=a;});
-  scFaceIdx=0;scPaintColor='D';scGroups=null;scFlat=null;scMoveIdx=0;scState0=null;scQuick=false;scEditing=false;scFixMsg='';
+  scFaceIdx=0;scPaintColor='D';scCursor=0;scGroups=null;scFlat=null;scMoveIdx=0;scState0=null;scQuick=false;scEditing=false;scFixMsg='';
 }
 function scEnter(){ if(!scEntry)scReset(); scRender(); }
 function scRender(){
@@ -1345,9 +1367,9 @@ function scBegin(){ scReset(); scMode='entry'; sc3d.mode='entry'; scSetFaceView(
 function scValidSaved(s){return !!(s&&s.entry&&FACE_ORDER.every(f=>Array.isArray(s.entry[f])&&s.entry[f].length===9));}
 function scSavedCube(){const s=load('cc_saved_cube',null);return scValidSaved(s)?s:null;}
 function scSaveForLater(){save('cc_saved_cube',{entry:scEntry,faceIdx:scFaceIdx});scToast('💾 Saved! Come back any time.');}
-function scResume(){const s=scSavedCube();if(!s)return;scReset();scEntry=s.entry;scFaceIdx=Math.max(0,Math.min(5,s.faceIdx||0));scMode='entry';sc3d.mode='entry';scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}
+function scResume(){const s=scSavedCube();if(!s)return;scReset();scEntry=s.entry;scFaceIdx=Math.max(0,Math.min(5,s.faceIdx||0));scCursor=scFirstEmpty(FACE_ORDER[scFaceIdx]);scMode='entry';sc3d.mode='entry';scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}
 function scStartOver(){if(confirm('Start over with a brand-new cube? The colors you painted will be cleared.')){scReset();scMode='intro';scRender();window.scrollTo(0,0);}}
-function scGoFace(i){if(i<0||i>5)return;scFaceIdx=i;scFixMsg='';scSetFaceView(i);scRender();window.scrollTo(0,0);}
+function scGoFace(i){if(i<0||i>5)return;scFaceIdx=i;scCursor=scFirstEmpty(FACE_ORDER[i]);scFixMsg='';scSetFaceView(i);scRender();window.scrollTo(0,0);}
 function scTabsHTML(){
   return '<div class="sc-tabs">'+FACE_ORDER.map((f,i)=>{
     const doneF=scEntry[f].every(c=>c), bd=(f==='D')?'border-color:#b9bfd6;':'';
@@ -1490,7 +1512,7 @@ function scScanHTML(){
     '<button class="big-btn alt" style="width:100%;box-sizing:border-box;margin-top:8px" onclick="scCamCancel()">✕ Type it in instead</button>'+
     '</div>';
 }
-function scSwatch(letter,sel){return '<button class="sc-sw'+(sel?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scPick(\''+letter+'\')" title="'+SNAME[letter]+'"></button>';}
+function scSwatch(letter){const kc=(letter==='D')?'#555':'#fff';return '<button class="sc-sw'+(letter===scPaintColor?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scSetColor(\''+letter+'\')" title="'+SNAME[letter]+'"><span class="sc-swk" style="color:'+kc+'">'+SNAME[letter][0]+'</span></button>';}
 function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}
 function scEntryHTML(){
   const f=FACE_ORDER[scFaceIdx], nb=NEIGH[f], cells=scEntry[f];
@@ -1499,9 +1521,9 @@ function scEntryHTML(){
   for(let i=0;i<9;i++){
     if(i===4){grid+='<div class="sc-center" style="background:'+SCOLOR[f]+'"></div>';continue;}
     const col=cells[i]?SCOLOR[cells[i]]:'';
-    grid+='<button class="sc-cell'+(cells[i]?' filled':'')+'" style="'+(col?'background:'+col:'')+'" onclick="scPaint('+i+')"></button>';
+    grid+='<button class="sc-cell'+(cells[i]?' filled':'')+(i===scCursor?' cursor':'')+'" style="'+(col?'background:'+col:'')+'" onclick="scCellTap('+i+')"></button>';
   }
-  const pal=Object.keys(SCOLOR).map(l=>scSwatch(l,l===scPaintColor)).join('');
+  const pal=Object.keys(SCOLOR).map(l=>scSwatch(l)).join('');
   const allDone=FACE_ORDER.every(ff=>scEntry[ff].every(c=>c));
   /* Auto-fill the last side — but ONLY when it's uniquely determined. ~26% of scrambled cubes
      have several valid last sides (verified), so we never guess: the button appears only when
@@ -1523,10 +1545,12 @@ function scEntryHTML(){
     ? '<button class="big-btn alt" onclick="scPrevFace()">← Back</button>'
     : (scEditing ? '<button class="big-btn alt" onclick="scCancelFix()" style="background:#888">✕ Keep steps</button>'
                  : '<button class="big-btn alt" disabled style="opacity:.45">← Back</button>');
-  const rightBtn = scFaceIdx<5
-    ? '<button class="big-btn" onclick="scNextFace()"'+(done?'':' disabled')+'>Next →</button>'
-    : (scEditing ? ''
-                 : '<button class="big-btn" onclick="scShowPreview()"'+(done?'':' disabled')+'>See my cube →</button>');
+  const rightBtn = (allDone && !scEditing)                 /* all six in (e.g. after auto-advance) -> proceed from any side */
+    ? '<button class="big-btn" onclick="scShowPreview()">See my cube →</button>'
+    : (scFaceIdx<5
+        ? '<button class="big-btn" onclick="scNextFace()"'+(done?'':' disabled')+'>Next →</button>'
+        : (scEditing ? ''
+                     : '<button class="big-btn" onclick="scShowPreview()"'+(done?'':' disabled')+'>See my cube →</button>'));
   return '<div class="card">'+
    (scEditing?'<div class="sc-fixbanner">😌 No need to start over! Fix any squares that don\'t match your real cube, then tap <b>Solve again</b>.</div>':'')+
    scFixMsgHTML()+
@@ -1539,8 +1563,9 @@ function scEntryHTML(){
      '<div class="sc-hintrow">'+scDot(nb[3])+'<div class="sc-grid">'+grid+'</div>'+scDot(nb[1])+'</div>'+
      '<div class="sc-hintrow">'+scDot(nb[2])+'</div>'+
    '</div>'+
-   '<div class="sc-palhint">Pick a color, then tap the squares 👇</div>'+
+   '<div class="sc-palhint">Tap a color to fill the glowing square 👇 It hops to the next by itself!</div>'+
    '<div class="sc-pal">'+pal+'</div>'+
+   '<div class="sc-palsub">⌨️ On a keyboard? Press <kbd>W</kbd> <kbd>Y</kbd> <kbd>R</kbd> <kbd>O</kbd> <kbd>B</kbd> <kbd>G</kbd> &nbsp;•&nbsp; <kbd>Backspace</kbd> to fix</div>'+
    autoBtn+camBtn+
    '<div class="step-nav">'+leftBtn+
      '<button class="big-btn" onclick="scClearFace()" style="background:#888">Clear</button>'+
@@ -1552,7 +1577,25 @@ function scEntryHTML(){
 }
 function scPick(l){scPaintColor=l;scRender();}
 function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scFixMsg='';scRender();}
-function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scFixMsg='';scRender();}
+/* ---- auto-advancing entry: a "cursor" square moves through the side; tapping a colour (or
+   pressing its letter) fills the cursor square and hops to the next. Tap any square to fix it. --- */
+function scFirstEmpty(f){const a=scEntry[f];for(const i of SC_ORDER)if(!a[i])return i;return SC_ORDER[0];}
+function scAdvanceCursor(){const p=SC_ORDER.indexOf(scCursor);scCursor=SC_ORDER[(p+1)%8];}
+function scCursorStep(d){const p=SC_ORDER.indexOf(scCursor);scCursor=SC_ORDER[((p<0?0:p)+d+8)%8];}
+function scCellTap(i){if(i===4)return;scCursor=i;scRender();}     /* click a square -> aim the cursor there (to fix it) */
+function scSetColor(l){                                            /* fill the cursor square, then auto-advance */
+  if(scMode!=='entry')return;
+  const f=FACE_ORDER[scFaceIdx];
+  scEntry[f][scCursor]=l; scPaintColor=l; scFixMsg='';
+  if(scEntry[f].every(c=>c) && !scEditing){ scOnFaceDone(); }      /* side complete -> hop to the next unfinished side */
+  else { scAdvanceCursor(); scRender(); }
+}
+function scOnFaceDone(){
+  const nxt=FACE_ORDER.findIndex(ff=>!scEntry[ff].every(c=>c));    /* next side that still needs colours */
+  if(nxt>=0){ scFaceIdx=nxt; scCursor=scFirstEmpty(FACE_ORDER[nxt]); scFixMsg=''; scSetFaceView(nxt); scRender(); window.scrollTo(0,0); }
+  else { scRender(); window.scrollTo(0,0); }                       /* all six done — "See my cube →" is now enabled */
+}
+function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scCursor=SC_ORDER[0];scFixMsg='';scRender();}
 /* ---- auto-complete the last side ----------------------------------------------
    Once 5 sides are fully painted, the 6th is uniquely determined: every cube piece
    is unique and the cube's parity rules pin the leftover pieces. We try arrangements
@@ -1599,8 +1642,8 @@ function scFillLastSide(){
   scShowPreview();                                        /* all six sides done -> straight to the spin-and-check preview */
   scToast('✨ Ta-da! I filled in your last side. Give your cube a spin to check, then solve!');
 }
-function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
-function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
+function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scCursor=scFirstEmpty(FACE_ORDER[scFaceIdx]);scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
+function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scCursor=scFirstEmpty(FACE_ORDER[scFaceIdx]);scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
 function scDoSolve(){scStartSolve('learn');}     /* ✨ Solve it! — the teachable 7-step method */
 function scQuickSolve(){scStartSolve('quick');}  /* ⚡ Quick fix — fewest moves (falls back to learn if too twisted) */
 function scStartSolve(mode){
@@ -1632,7 +1675,7 @@ function scFixHere(){
   if(!scState0||!scFlat)return;
   const fl=cbToFacelet(cbApply(cbClone(scState0),scFlat.slice(0,scMoveIdx).map(x=>x.m)));
   scEntry=scFacelet2Entry(fl);
-  scEditing=true;scFixMsg='';scFaceIdx=0;scMode='entry';sc3d.mode='entry';scSetFaceView(0);scRender();window.scrollTo(0,0);
+  scEditing=true;scFixMsg='';scFaceIdx=0;scCursor=0;scMode='entry';sc3d.mode='entry';scSetFaceView(0);scRender();window.scrollTo(0,0);
 }
 function scSolveAgain(){scStartSolve(scLastMode||'learn');}
 function scCancelFix(){scEditing=false;scFixMsg='';scMode='guide';scRender();window.scrollTo(0,0);}
@@ -1791,7 +1834,7 @@ function sc3dTick(){
   sc3d.raf=requestAnimationFrame(sc3dTick);
 }
 function scShowPreview(){sc3d.mode='preview';sc3d.tgx=sc3d.tgy=null;sc3d.rx=-22;sc3d.ry=-34;sc3d.idle=0;scMode='preview';scRender();window.scrollTo(0,0);}
-function scBackToEntry(){sc3d.mode='entry';scMode='entry';scFaceIdx=0;scSetFaceView(0);scRender();window.scrollTo(0,0);}
+function scBackToEntry(){sc3d.mode='entry';scMode='entry';scFaceIdx=0;scCursor=scFirstEmpty(FACE_ORDER[0]);scSetFaceView(0);scRender();window.scrollTo(0,0);}
 function scPreviewHTML(){
   return '<div class="card">'+
     '<div style="text-align:center;font-size:21px;font-weight:800">🎉 Here\'s your cube!</div>'+

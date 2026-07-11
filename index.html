@@ -250,6 +250,20 @@
   .cam-cell{border:2px solid rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center}
   .cam-cell i{width:44%;height:44%;border-radius:8px;box-shadow:0 0 0 2px rgba(0,0,0,.45);opacity:.92;transition:background .12s}
   .cam-msg{background:#fff3d6;border:2px solid #ffb84d;border-radius:14px;padding:12px 14px;font-size:15px;font-weight:700;color:#7a4a00;margin:4px 0 12px;line-height:1.4}
+  .cam-title{font-size:18px;font-weight:800}
+  .cam-sub{font-size:13.5px;color:#666;font-weight:700;margin:2px 0 6px;line-height:1.35}
+  .cam-barwrap{position:absolute;left:0;right:0;bottom:0;height:10px;background:rgba(0,0,0,.4)}
+  .cam-bar{display:block;height:100%;width:0;background:#9aa3c8;transition:width .12s linear}
+  .cam-flash{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(56,198,109,.5);opacity:0;pointer-events:none;transition:opacity .1s}
+  .cam-flash.on{opacity:1}
+  .cam-flash span{background:#fff;color:#1e8f4e;font-weight:800;font-size:22px;padding:8px 16px;border-radius:14px;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+  .cam-chips{display:flex;align-items:center;justify-content:center;gap:7px;margin:8px 0 2px;flex-wrap:wrap}
+  .cam-chip{position:relative;width:22px;height:22px;border-radius:6px;opacity:.32;box-shadow:0 0 0 2px rgba(0,0,0,.12) inset;transition:opacity .2s,transform .2s}
+  .cam-chip.done{opacity:1;transform:scale(1.08)}
+  .cam-chip.done::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+  .cam-chips b{font-size:13px;color:#555;margin-left:6px}
+  .cam-status{font-size:14px;font-weight:800;color:#444;min-height:20px;margin:2px 0 6px}
+  .cam-btns{display:flex;gap:8px;justify-content:center}
   .sc-facewrap{max-width:300px;margin:0 auto}
   .sc-hintrow{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0}
   .sc-dot{width:22px;height:22px;border-radius:7px;border:2px solid #20233a;display:inline-block;flex-shrink:0}
@@ -1343,24 +1357,31 @@ function scTabsHTML(){
 function scToast(msg){let t=document.getElementById('scToast');if(!t){t=document.createElement('div');t.id='scToast';t.className='sc-toast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('show');clearTimeout(scToast._t);scToast._t=setTimeout(function(){t.classList.remove('show');},1800);}
 /* --- camera / webcam sticker scanner: reads a side's 9 colors ON-DEVICE (no upload, no storage) --- */
 let scCamStream=null, scCamTimer=null, scCamRead=null, scCamErr='', scCamCanvas=null, scCamFacing='user';  /* 'user' = front/selfie by default (easy on tablets/phones) */
+let scCamCand=null, scCamStreak=0, scCamCooldown=0, scCamDone={};        /* auto-capture: candidate reading, stable-frame streak, post-lock cooldown, faces already captured */
+const SCAM_INTERVAL=150, SCAM_NEED=5, SCAM_CONF=0.4;                     /* sample every 150ms; lock after ~5 steady frames (~0.75s); min per-cell confidence to count a frame */
 function scRGB2HSV(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d>0){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}return [h,mx===0?0:d/mx,mx];}
-function scCubeColorFromRGB(r,g,b){                                      /* nearest cube color -> face letter (heuristic; the kid fixes any misses) */
+function scClassifyCell(r,g,b){                                          /* -> {c: face letter, conf: 0..1}. THE TUNING DIAL for camera color detection. */
   const hsv=scRGB2HSV(r,g,b),h=hsv[0],s=hsv[1],v=hsv[2];
-  if(s<0.28&&v>0.5) return 'D';                                          /* white = washed-out + bright */
-  const refs=[['L',0],['R',30],['U',52],['F',135],['B',215]];           /* red, orange, yellow, green, blue (hue anchors) */
-  let best='L',bd=999;
-  for(const rf of refs){let dh=Math.abs(h-rf[1]);if(dh>180)dh=360-dh;if(dh<bd){bd=dh;best=rf[0];}}
-  return best;
+  if(v>0.45 && s<0.30){                                                  /* white = bright + washed-out */
+    const conf=Math.min(1,(0.30-s)/0.20)*Math.min(1,(v-0.35)/0.35);
+    return {c:'D',conf:Math.max(0.2,conf)};
+  }
+  const refs=[['L',7],['R',28],['U',52],['F',135],['B',215]];           /* red, orange, yellow, green, blue (hue anchors) */
+  const arr=refs.map(function(rf){let dh=Math.abs(h-rf[1]);if(dh>180)dh=360-dh;return {c:rf[0],d:dh};}).sort(function(a,b){return a.d-b.d;});
+  const margin=Math.min(1,(arr[1].d-arr[0].d)/22);                       /* clear separation from the 2nd-closest hue */
+  const sat=Math.min(1,Math.max(0,(s-0.20)/0.22));                       /* a real color needs some saturation (else it's ambiguous) */
+  return {c:arr[0].c, conf:Math.min(margin, 0.35+0.65*sat)};
 }
-function scClassify9(ctx,N){                                             /* read the 9 sticker colors from an NxN canvas context */
-  const out=[];
+function scCubeColorFromRGB(r,g,b){ return scClassifyCell(r,g,b).c; }    /* letter-only helper (kept for compatibility) */
+function scClassify9(ctx,N){                                             /* read the 9 sticker colors -> {letters:[9], conf: the least-confident cell} */
+  const letters=[]; let minc=1;
   for(let r=0;r<3;r++)for(let c=0;c<3;c++){
     const cx=Math.round((c+0.5)/3*N),cy=Math.round((r+0.5)/3*N),P=Math.max(4,Math.round(N/22));
     const img=ctx.getImageData(cx-P,cy-P,P*2,P*2).data;
     let R=0,G=0,B=0,n=0;for(let k=0;k<img.length;k+=4){R+=img[k];G+=img[k+1];B+=img[k+2];n++;}
-    out.push(scCubeColorFromRGB(R/n,G/n,B/n));
+    const cell=scClassifyCell(R/n,G/n,B/n); letters.push(cell.c); if(cell.conf<minc)minc=cell.conf;
   }
-  return out;
+  return {letters:letters, conf:minc};
 }
 function scCamSample(){                                                  /* grab the centered square of the live frame (matches the object-fit:cover crop), classify */
   const v=document.getElementById('scCamVideo'); if(!v||!v.videoWidth) return null;
@@ -1370,12 +1391,48 @@ function scCamSample(){                                                  /* grab
   ctx.drawImage(v,sx,sy,sq,sq,0,0,N,N);
   return scClassify9(ctx,N);
 }
-function scCamTick(){                                                    /* live: tint the 9 overlay dots with what the camera sees right now */
-  const letters=scCamSample(); if(!letters)return; scCamRead=letters;
+/* Auto-capture loop — no button. Tint the dots live; when the reading holds STEADY and
+   CONFIDENT for ~0.75s, lock that side by itself. The centre colour tells us WHICH side it
+   is, so the kid can show the six sides in any order and each snaps in when held still. */
+function scCamTick(){
+  const s=scCamSample(); if(!s)return;
+  const letters=s.letters; scCamRead=letters;
   for(let i=0;i<9;i++){const el=document.getElementById('scCamCell'+i);if(el)el.style.background=SCOLOR[letters[i]]||'transparent';}
+  if(Date.now()<scCamCooldown){scCamProgress(0,null,'✅ Got it! Now show me another side…');return;}   /* brief pause after a lock */
+  const face=letters[4], key=letters.join(''), good=(s.conf>=SCAM_CONF)&&!!SCOLOR[face];
+  if(good&&key===scCamCand){scCamStreak++;}else{scCamCand=key;scCamStreak=good?1:0;}
+  if(good)scCamProgress(scCamStreak/SCAM_NEED,face,(scCamDone[face]?'Re-checking the ':'Hold steady on the ')+SNAME[face]+' side…');
+  else scCamProgress(0,null,'Line up one whole side in the box 🙂');
+  if(scCamStreak>=SCAM_NEED)scCamLockFace(letters);
+}
+function scCamProgress(frac,face,msg){                                   /* fill the "hold steady" bar + status line */
+  const bar=document.getElementById('scCamBar'); if(bar){bar.style.width=Math.min(100,Math.round(frac*100))+'%';bar.style.background=face?SCOLOR[face]:'#9aa3c8';}
+  const st=document.getElementById('scCamStatus'); if(st)st.textContent=msg;
+}
+function scCamLockFace(letters){                                         /* write a confidently-read side into scEntry, keyed by its centre colour */
+  const face=letters[4]; if(!SCOLOR[face])return;
+  for(let i=0;i<9;i++)scEntry[face][i]=(i===4?face:letters[i]);          /* centre stays this side's own colour */
+  scCamDone[face]=true; scCamCand=null; scCamStreak=0; scCamCooldown=Date.now()+1100;
+  const fl=document.getElementById('scCamFlash'); if(fl){fl.innerHTML='<span>✅ '+SNAME[face]+'!</span>';fl.classList.add('on');setTimeout(function(){fl.classList.remove('on');},650);}
+  scCamUpdateChips();
+  if(FACE_ORDER.every(function(f){return scCamDone[f];}))scCamFinish();
+}
+function scCamUpdateChips(){                                             /* light up the 6 side-colour chips as they're captured */
+  FACE_ORDER.forEach(function(f){const el=document.getElementById('scChip_'+f);if(el)el.classList.toggle('done',!!scCamDone[f]);});
+  const c=document.getElementById('scCamCount'); if(c)c.textContent=FACE_ORDER.filter(function(f){return scCamDone[f];}).length+' of 6 sides';
+}
+function scCamFinish(){                                                  /* all six captured -> go review + fix on the grid */
+  scCamStop(); scFixMsg=''; scFaceIdx=0; scMode='entry'; sc3d.mode='entry'; scSetFaceView(0); scRender(); window.scrollTo(0,0);
+  scToast('🎉 Got all 6 sides! Check your cube and fix any square that looks wrong.');
+}
+function scCamGrab(){                                                    /* manual fallback: lock whatever's in the box right now (tricky lighting) */
+  if(!scCamRead){scToast('📷 One sec — pointing the camera…');return;}
+  scCamLockFace(scCamRead);
 }
 function scStartCamera(){
-  scCamErr=''; scCamRead=null; scMode='scan'; scRender();
+  scCamErr=''; scCamRead=null; scCamCand=null; scCamStreak=0; scCamCooldown=0;
+  scCamDone={}; FACE_ORDER.forEach(function(f){if(scEntry[f].every(function(c){return c;}))scCamDone[f]=true;});  /* sides already filled count as done */
+  scMode='scan'; scRender();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){scCamError('nocam');return;}
   scGetCam(scCamFacing, scCamGotStream, function(){scCamError('denied');});
 }
@@ -1395,22 +1452,13 @@ function scCamGotStream(stream){
   const v=document.getElementById('scCamVideo');
   if(!v){stream.getTracks().forEach(function(t){t.stop();});return;}
   v.srcObject=stream; if(v.play)v.play().catch(function(){});
-  clearInterval(scCamTimer); scCamTimer=setInterval(scCamTick,220);
+  clearInterval(scCamTimer); scCamTimer=setInterval(scCamTick,SCAM_INTERVAL);
 }
 function scCamError(kind){scCamErr=kind;scCamStop();scRender();}
 function scCamStop(){if(scCamStream){scCamStream.getTracks().forEach(function(t){t.stop();});scCamStream=null;}if(scCamTimer){clearInterval(scCamTimer);scCamTimer=null;}}
 function scCamCancel(){scCamStop();scMode='entry';sc3d.mode='entry';scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}
-function scCamReadFace(){
-  const letters=scCamRead||scCamSample();
-  if(!letters){scToast('📷 One sec — pointing the camera…');return;}
-  const f=FACE_ORDER[scFaceIdx];
-  for(let i=0;i<9;i++){if(i!==4)scEntry[f][i]=letters[i];}               /* keep the middle = this side's color */
-  scFixMsg=''; scCamStop();
-  scMode='entry'; sc3d.mode='entry'; scSetFaceView(scFaceIdx); scRender(); window.scrollTo(0,0);
-  scToast('📷 Read the '+SNAME[f]+' side — check it and fix any wrong squares!');
-}
+/* (the old tap-to-read-one-face flow is replaced by auto-capture: scCamTick -> scCamLockFace, with scCamGrab as a manual fallback) */
 function scScanHTML(){
-  const f=FACE_ORDER[scFaceIdx];
   if(scCamErr){
     const msg=scCamErr==='nocam'
       ? 'I can\'t open the camera on this page. On the <b>website</b> it works great — or just tap the colors in below! 📱'
@@ -1418,15 +1466,25 @@ function scScanHTML(){
     return '<div class="card"><div class="cam-msg">'+msg+'</div><button class="big-btn" onclick="scCamCancel()">✏️ Tap the colors instead</button></div>';
   }
   let cells='';for(let i=0;i<9;i++)cells+='<div class="cam-cell"><i id="scCamCell'+i+'"></i></div>';
+  const chips=FACE_ORDER.map(function(f){return '<span class="cam-chip'+(scCamDone[f]?' done':'')+'" id="scChip_'+f+'" style="background:'+SCOLOR[f]+';'+(f==='D'?'border:2px solid #c7cde0':'')+'"></span>';}).join('');
+  const n=FACE_ORDER.filter(function(f){return scCamDone[f];}).length;
   return '<div class="card cam-wrap">'+
-    '<div style="font-size:18px;font-weight:800">📷 Point at the <b style="color:'+(f==='D'?'#999':SCOLOR[f])+'">'+SNAME[f]+'</b> side</div>'+
-    '<div style="font-size:14px;color:#666;font-weight:700;margin:2px 0 6px">Fill the box with one whole side. The dots show what I see — tap Read when it looks right! 🙂</div>'+
-    '<div class="cam-box"><video id="scCamVideo" autoplay playsinline muted></video><div class="cam-grid">'+cells+'</div></div>'+
-    '<div style="text-align:center;margin-top:8px"><button class="sc-actionbtn" style="background:#7a8bd6;font-size:14px;padding:8px 14px" onclick="scCamFlip()">🔄 Flip camera</button></div>'+
-    '<div class="step-nav" style="margin-top:10px">'+
-      '<button class="big-btn alt" onclick="scCamCancel()">✕ Type instead</button>'+
-      '<button class="big-btn" onclick="scCamReadFace()">📸 Read this side</button>'+
-    '</div></div>';
+    '<div class="cam-title">📷 Show me your cube!</div>'+
+    '<div class="cam-sub">Hold one side still in the box — I\'ll grab it by myself. No buttons! ✨</div>'+
+    '<div class="cam-box">'+
+      '<video id="scCamVideo" autoplay playsinline muted></video>'+
+      '<div class="cam-grid">'+cells+'</div>'+
+      '<div class="cam-barwrap"><i id="scCamBar" class="cam-bar"></i></div>'+
+      '<div class="cam-flash" id="scCamFlash"></div>'+
+    '</div>'+
+    '<div class="cam-chips">'+chips+'<b id="scCamCount">'+n+' of 6 sides</b></div>'+
+    '<div class="cam-status" id="scCamStatus">Show me a side to start! 🙂</div>'+
+    '<div class="cam-btns">'+
+      '<button class="sc-actionbtn" style="background:#7a8bd6" onclick="scCamFlip()">🔄 Flip</button>'+
+      '<button class="sc-actionbtn" style="background:#7a8bd6" onclick="scCamGrab()">📸 Grab now</button>'+
+    '</div>'+
+    '<button class="big-btn alt" style="width:100%;box-sizing:border-box;margin-top:8px" onclick="scCamCancel()">✕ Type it in instead</button>'+
+    '</div>';
 }
 function scSwatch(letter,sel){return '<button class="sc-sw'+(sel?' sel':'')+'" style="background:'+SCOLOR[letter]+'" onclick="scPick(\''+letter+'\')" title="'+SNAME[letter]+'"></button>';}
 function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}

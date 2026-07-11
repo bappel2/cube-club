@@ -162,6 +162,21 @@
   .playall .pa-tx{min-width:0}
   .playall .pa-tx b{display:block;font-size:18px}
   .playall .pa-tx small{display:block;font-size:13px;opacity:.9;margin-top:2px;line-height:1.3}
+  /* Side-by-side Most Popular + Newest columns (stack on narrow phones) */
+  .creator-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  .creator-cols .card{margin-bottom:0}
+  .creator-cols .vid{padding:8px;gap:10px}
+  .creator-cols .vid .thumb{width:104px;height:59px}
+  .creator-cols .vid .meta .vt{font-size:15px}
+  .playall-sm{margin-top:12px;padding:11px 14px}
+  .playall-sm .pa-ic{font-size:22px}
+  .playall-sm .pa-tx b{font-size:15px}
+  .playall-sm .pa-tx small{font-size:12px}
+  @media(max-width:560px){
+    .creator-cols{grid-template-columns:1fr;gap:0}
+    .creator-cols .card{margin-bottom:16px}
+    .creator-cols .vid .thumb{width:118px;height:66px}
+  }
   .note{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:14px;color:#6b5400;line-height:1.5}
 
   /* CUBE GUIDE */
@@ -449,6 +464,18 @@ const CREATORS = [
       {t:"Can I Get a Job at a Cubing Store?",  v:"5.9M", id:"Q47ynKfRjwc"},
       {t:"Pranking a Beginner's Teacher",       v:"5.8M", id:"_ewxGIfFG-Y"},
       {t:"Solving Every Big Cube (1×1–21×21)",  v:"5.8M", id:"ODKtBl-2N68"}
+    ],
+    newest:[
+      {t:"A Jigsaw Competition!",               v:"2.2M", id:"4yMQC4mg7-0"},
+      {t:"My Rarest Cubes",                     v:"359K", id:"DC55EOwuJCk"},
+      {t:"How to Solve in 2026",                v:"3.4M", id:"iAa7_mDgjTw"},
+      {t:"The Impossible Cube!",                v:"4.8M", id:"lgyjxAXzra4"},
+      {t:"How I Broke a World Record!",         v:"2.8M", id:"gGUge7dqKkY"},
+      {t:"Building My Dream Room!",             v:"1.6M", id:"tlO7RiDisBM"},
+      {t:"Copying YouTubers' Videos?",          v:"4.5M", id:"U8Io7RUgycM"},
+      {t:"World Championship Finals!",          v:"5.6M", id:"dKF7ljguDAw"},
+      {t:"How Fast in 30 Days?",                v:"981K", id:"0ngDORcf-BE"},
+      {t:"The Time I Quit Cubing",              v:"4.0M", id:"BHqaATk3hWs"}
     ] },
   { id:"tingman", name:"Tingman", emoji:"🧩", blurb:"Wholesome cubing with his kids!",
     grad:"linear-gradient(150deg,#2b7fff,#6a5cff)", uploads:"UU9Ht_7PQ1G4UIPhjSkF-phw",
@@ -463,6 +490,18 @@ const CREATORS = [
       {t:"Unboxing 22 Crazy Puzzles",            v:"173K", id:"DwIzfNcvefY"},
       {t:"Reacting to Funny Cubing Memes",       v:"171K", id:"6aIkLmIcxFU"},
       {t:"I Flew to Texas for One Question",     v:"157K", id:"KHm28JsvunI"}
+    ],
+    newest:[
+      {t:"Australia's Biggest Competition!",    v:"12K",  id:"QQZv6tWyFHA"},
+      {t:"GAN Made a Square-1!",                v:"34K",  id:"tZjfAYg-b38"},
+      {t:"The Perfect Solve!",                  v:"39K",  id:"jVkIyZ5I_5I"},
+      {t:"A Big Cubing Rule Change",            v:"65K",  id:"t8lujBp7jGA"},
+      {t:"Cube Battle vs My Boss!",             v:"21K",  id:"RGB7tMVSlzA"},
+      {t:"Turning My Friend Into a Cuber",      v:"14K",  id:"UK6mqHmePgk"},
+      {t:"10 Crazy New Puzzles",                v:"96K",  id:"KSeRpY0VQAM"},
+      {t:"This Broke My Brain!",                v:"20K",  id:"2Q28K0mr2LQ"},
+      {t:"My Secret Videos",                    v:"13K",  id:"FljzulQL5KQ"},
+      {t:"A Cuber Hit 1M Subs!",                v:"26K",  id:"ug6EQtz1yOQ"}
     ] }
 ];
 
@@ -655,13 +694,15 @@ function openCreator(id){
     '<button class="big-btn alt" style="margin-bottom:12px" onclick="closeCreator()">← All videos</button>'+
     '<div class="creator-hero" style="background:'+c.grad+'"><span class="ch-emoji">'+c.emoji+'</span>'+
       '<span class="ch-txt"><b>'+esc(c.name)+'</b><small>'+esc(c.blurb)+'</small></span></div>'+
-    '<div class="card"><h3 class="creator-h3">⭐ Most Popular</h3><div id="creatorPop"></div>'+
-      '<h3 class="creator-h3" style="margin-top:20px">🆕 Newest Videos</h3>'+
-      '<button class="playall" onclick="playPlaylist(\''+c.uploads+'\',\''+esc(c.name)+'\')">'+
-        '<span class="pa-ic">▶</span><span class="pa-tx"><b>Play all — newest first</b>'+
-        '<small>'+esc(c.name)+'’s latest uploads, always up to date</small></span></button></div>';
-  const grid=page.querySelector('#creatorPop');
-  c.popular.forEach(v=> grid.appendChild(vidCard(v.id,v.t,'🔥 '+v.v+' views')) );
+    '<div class="creator-cols">'+
+      '<div class="card"><h3 class="creator-h3">⭐ Most Popular</h3><div id="creatorPop"></div></div>'+
+      '<div class="card"><h3 class="creator-h3">🆕 Newest Videos</h3><div id="creatorNew"></div>'+
+        '<button class="playall playall-sm" onclick="playPlaylist(\''+c.uploads+'\',\''+esc(c.name)+'\')">'+
+          '<span class="pa-ic">▶</span><span class="pa-tx"><b>Play all — always fresh</b>'+
+          '<small>auto-updates with every new upload</small></span></button></div>'+
+    '</div>';
+  const gp=page.querySelector('#creatorPop');c.popular.forEach(v=> gp.appendChild(vidCard(v.id,v.t,'🔥 '+v.v+' views')) );
+  const gn=page.querySelector('#creatorNew');(c.newest||[]).forEach(v=> gn.appendChild(vidCard(v.id,v.t,'🔥 '+v.v+' views')) );
   document.getElementById('videoPlayer').style.display='none';
   document.getElementById('creatorRow').style.display='none';
   document.getElementById('videoArea').style.display='none';

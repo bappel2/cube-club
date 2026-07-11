@@ -321,8 +321,6 @@
   .coach-dot.on{background:#6a5cff}
   .coach-dotlbl{font-size:12px;font-weight:800;color:#8a7fe0;margin-left:5px}
   .coach-more{width:100%;box-sizing:border-box;background:linear-gradient(150deg,#6a5cff,#8a5cff);margin-top:12px}
-  .coach-voice{width:100%;box-sizing:border-box;background:#eef0fb;color:#3a3f66;border:2px solid #cfd3e6;margin-top:8px}
-  .coach-voice.on{background:#e6f6ff;border-color:#2b7fff;color:#0a5a99}
   .coach-actions{display:flex;gap:10px;margin-top:12px}
   .coach-didit{flex:2;background:linear-gradient(150deg,#38c66d,#1ea85a)}
   .coach-solve{flex:1;background:#9aa0b8;font-size:14px}
@@ -544,7 +542,7 @@ const CREATORS = [
 function go(id){
   if(document.getElementById('games').classList.contains('active') && id!=='games') pcStop();
   if(document.getElementById('videos').classList.contains('active') && id!=='videos') stopVideoPlayer();
-  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer'){ scCamStop(); scStopVoice(); }
+  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer') scCamStop();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
@@ -1340,8 +1338,7 @@ const MOVEHELP={
 let scMode='intro', scFaceIdx=0, scPaintColor='D', scCursor=0, scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null, scQuick=false, scEditing=false, scLastMode='learn', scFixMsg='';
 /* Cube Coach state: which of the 7 steps he's stuck on, how far up the hint ladder,
    the tunable style (gentle hints vs. show-the-steps), and the on-device voice toggle. */
-let scCoachGi=0, scCoachRung=0, scCoachStyle=load('cc_coach_style','gentle'), scVoiceOn=!!load('cc_coach_voice',false);
-const SC_TTS=(typeof window!=='undefined' && 'speechSynthesis' in window);
+let scCoachGi=0, scCoachRung=0, scCoachStyle=load('cc_coach_style','gentle');
 const scCoachStartRung=()=>scCoachStyle==='steps'?1:0;   /* "show steps" starts one rung higher */
 const SC_ORDER=[0,1,2,3,5,6,7,8];                       /* the 8 non-centre squares, reading order (skips centre 4) */
 const SCKEY={W:'D',Y:'U',R:'L',O:'R',B:'B',G:'F'};      /* typed colour initial -> internal face letter */
@@ -1844,7 +1841,7 @@ function sc3dTick(){
   if(!moved && sc3d.mode!=='preview'){sc3d.raf=0;return;}              // sleep when settled (entry)
   sc3d.raf=requestAnimationFrame(sc3dTick);
 }
-function scShowPreview(){scStopVoice();sc3d.mode='preview';sc3d.tgx=sc3d.tgy=null;sc3d.rx=-22;sc3d.ry=-34;sc3d.idle=0;scMode='preview';scRender();window.scrollTo(0,0);}
+function scShowPreview(){sc3d.mode='preview';sc3d.tgx=sc3d.tgy=null;sc3d.rx=-22;sc3d.ry=-34;sc3d.idle=0;scMode='preview';scRender();window.scrollTo(0,0);}
 function scBackToEntry(){sc3d.mode='entry';scMode='entry';scFaceIdx=0;scCursor=scFirstEmpty(FACE_ORDER[0]);scSetFaceView(0);scRender();window.scrollTo(0,0);}
 function scPreviewHTML(){
   return '<div class="card">'+
@@ -1920,44 +1917,8 @@ function scCoachInit(){
   sc3d.mode='entry'; scMode='coach';
   scSetGuideView(scGroups[gi].moves[0][0]);
   scRender(); window.scrollTo(0,0);
-  if(scVoiceOn) scSpeak(scCoachEncourage()+' '+scStripForSpeech(SC_COACH[gi].mission));
 }
 function scCoachSolve(){scStartSolve('coach');}
-/* --- on-device voice (Web Speech API): no library, no network, nothing sent --- */
-function scSpeak(text){
-  if(!SC_TTS||!scVoiceOn||!text)return;
-  try{
-    window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(text);
-    u.rate=0.96; u.pitch=1.12; u.lang='en-US';
-    const vs=window.speechSynthesis.getVoices()||[];
-    const v=vs.find(x=>/en[-_]?US/i.test(x.lang)&&/(female|samantha|zira|aria|jenny|google)/i.test(x.name))||vs.find(x=>/^en/i.test(x.lang))||null;
-    if(v)u.voice=v;
-    window.speechSynthesis.speak(u);
-  }catch(_){}
-}
-function scStopVoice(){if(SC_TTS){try{window.speechSynthesis.cancel();}catch(_){}}}
-/* strip HTML tags + emoji/arrows so the spoken line stays clean */
-function scStripForSpeech(s){return String(s)
-  .replace(/<[^>]+>/g,'')
-  .replace(/[←-⇿⌀-➿⬀-⯿️]/g,'')
-  .replace(/[\u{1F000}-\u{1FAFF}]/gu,'')
-  .replace(/\s+/g,' ').trim();}
-function scCoachSayText(){
-  const c=SC_COACH[scCoachGi], r=scCoachRung;
-  let t;
-  if(r===0)t=c.mission;
-  else if(r===1)t=c.look;
-  else if(r===2)t=c.which;
-  else t='Try these turns. '+scGroups[scCoachGi].moves.map(m=>MOVEHELP[m]).join('. ');
-  return scStripForSpeech((r>0?c.mission.replace(/[.!?]+$/,'')+'. ':'')+t);
-}
-function scCoachEncourage(){
-  const done=[];for(let i=0;i<scCoachGi;i++)done.push(SC_COACH[i].done.replace(/^the /,''));
-  if(!done.length)return "Let's solve your cube together! You've got this.";
-  if(done.length===1)return 'Nice work — you finished '+done[0]+'!';
-  return 'Awesome — you finished '+done.slice(0,-1).join(', ')+' and '+done[done.length-1]+'!';
-}
 function scCoachBannerHTML(){
   const done=[];for(let i=0;i<scCoachGi;i++)done.push(SC_COACH[i].done);
   let txt;
@@ -1996,7 +1957,6 @@ function scCoachHTML(){
   const face=scGroups[scCoachGi].moves[0][0];
   const m0=scGroups[scCoachGi].moves[0];
   const arrow=scCoachRung>=3?{face:face,dir:(m0.length===1?'cw':(m0[1]==='2'?'half':'ccw'))}:null;
-  const voiceBtn=SC_TTS?'<button class="big-btn coach-voice'+(scVoiceOn?' on':'')+'" onclick="scCoachToggleVoice()">'+(scVoiceOn?'🔊 Voice is on — tap to mute':'🔈 Say it out loud')+'</button>':'';
   const moreBtn=scCoachRung<3?'<button class="big-btn coach-more" onclick="scCoachMore()">Show me a bit more 👇</button>':'';
   return '<div class="card">'+
     '<div class="coach-head">🧭 Cube Coach</div>'+
@@ -2004,7 +1964,7 @@ function scCoachHTML(){
     scCube3DHTML(168,scCoachRung>=3?face:null,scCoachDispState(),arrow)+
     scCoachStyleToggleHTML()+
     scCoachHintCard()+
-    moreBtn+voiceBtn+
+    moreBtn+
     '<div class="coach-actions">'+
       '<button class="big-btn coach-didit" onclick="scCoachDidIt()">✅ I did it!</button>'+
       '<button class="big-btn coach-solve" onclick="scCoachToGuide()">🙈 Just solve it</button>'+
@@ -2013,18 +1973,15 @@ function scCoachHTML(){
     '<div class="step-nav" style="margin-top:8px"><button class="big-btn alt" onclick="scShowPreview()">← Back to my cube</button></div>'+
   '</div>';
 }
-function scCoachMore(){if(scCoachRung<3){scCoachRung++;scRender();window.scrollTo(0,0);if(scVoiceOn)scSpeak(scCoachSayText());}}
-function scCoachSetStyle(st){scCoachStyle=st;save('cc_coach_style',st);scCoachRung=scCoachStartRung();scRender();if(scVoiceOn)scSpeak(scCoachSayText());}
-function scCoachToggleVoice(){scVoiceOn=!scVoiceOn;save('cc_coach_voice',scVoiceOn);if(scVoiceOn){scRender();scSpeak(scCoachSayText());}else{scStopVoice();scRender();}}
+function scCoachMore(){if(scCoachRung<3){scCoachRung++;scRender();window.scrollTo(0,0);}}
+function scCoachSetStyle(st){scCoachStyle=st;save('cc_coach_style',st);scCoachRung=scCoachStartRung();scRender();}
 function scCoachDidIt(){
   const nx=scCoachNextGi(scCoachGi);
-  const justDone=SC_COACH[scCoachGi].done;
-  if(nx<0){scStopVoice();celebrate('🎉','YOU DID IT!','You solved your cube — high five! ✋');scMode='intro';scRender();return;}
+  if(nx<0){celebrate('🎉','YOU DID IT!','You solved your cube — high five! ✋');scMode='intro';scRender();return;}
   scCoachGi=nx; scCoachRung=scCoachStartRung(); scCoachSyncIdx();
   scSetGuideView(scGroups[nx].moves[0][0]); scRender(); window.scrollTo(0,0);
-  if(scVoiceOn)scSpeak('Great, '+scStripForSpeech(justDone)+' done! '+scStripForSpeech(SC_COACH[nx].mission));
 }
-function scCoachToGuide(){scStopVoice();scCoachSyncIdx();sc3d.mode='entry';scSetGuideView(scFlat[scMoveIdx].m[0]);scMode='guide';scRender();window.scrollTo(0,0);}
+function scCoachToGuide(){scCoachSyncIdx();sc3d.mode='entry';scSetGuideView(scFlat[scMoveIdx].m[0]);scMode='guide';scRender();window.scrollTo(0,0);}
 
 /* ---------- init ---------- */
 /* home mascot: a draggable-free pure-CSS 3D cube that turns one face every few seconds,

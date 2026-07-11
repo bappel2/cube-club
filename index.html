@@ -200,33 +200,27 @@
   .cube-cool{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:15px;
     color:#6b5400;line-height:1.5;margin-top:14px;font-weight:700}
 
-  /* GAMES */
-  .game-menu{display:grid;gap:14px}
-  .game-card{border:none;border-radius:22px;padding:20px;cursor:pointer;color:#fff;text-align:left;width:100%;
-    display:flex;align-items:center;gap:16px;box-shadow:0 7px 0 rgba(0,0,0,.15);transition:transform .05s}
-  .game-card:active{transform:translateY(4px);box-shadow:0 3px 0 rgba(0,0,0,.15)}
-  .game-card .gemoji{font-size:50px;flex-shrink:0}
-  .game-card .gname{font-size:22px;font-weight:800}
-  .game-card .gdesc{font-size:14px;font-weight:700;opacity:.95}
-  .game-card.memory{background:linear-gradient(150deg,#38c66d,#2b7fff)}
-  .game-card.pop{background:linear-gradient(150deg,#ff8a00,#e23b3b)}
-  .game-area{text-align:center}
-  .game-score{font-size:17px;font-weight:800;color:#555;margin-bottom:12px}
-  .game-msg{font-size:20px;font-weight:800;margin:14px 0 4px;min-height:26px}
-  .simon{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;max-width:330px;margin:0 auto}
-  .spad{aspect-ratio:1;border-radius:18px;border:4px solid rgba(0,0,0,.15);cursor:pointer;
-    box-shadow:0 5px 0 rgba(0,0,0,.15);transition:transform .05s,filter .1s;filter:brightness(.7)}
-  .spad:active{transform:translateY(3px)}
-  .spad.lit{filter:brightness(1.28);transform:scale(1.04)}
-  .pop-target{font-size:20px;font-weight:800;margin-bottom:8px}
-  .pop-swatch{display:inline-block;width:32px;height:32px;border-radius:8px;vertical-align:middle;
-    border:3px solid #20233a;margin-left:6px}
-  .pop-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;max-width:360px;margin:0 auto}
-  .pop-tile{aspect-ratio:1;border-radius:14px;border:3px solid rgba(0,0,0,.15);cursor:pointer;
-    box-shadow:0 4px 0 rgba(0,0,0,.12)}
-  .pop-tile:active{transform:translateY(2px)}
-  .timebar{height:14px;background:#e6e8f5;border-radius:8px;overflow:hidden;margin:12px auto;max-width:360px}
-  .timebar > i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#38c66d,#e23b3b);transition:width .1s linear}
+  /* PLAY CUBE */
+  .pc-stage{display:flex;align-items:center;justify-content:center;height:220px;perspective:820px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+  .pc-stage:active{cursor:grabbing}
+  .pc3d-cube{position:relative;width:108px;height:108px;transform-style:preserve-3d;transform:translateZ(-24px) rotateX(-28deg) rotateY(-32deg)}
+  .pc3d-cubie{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;transform-style:preserve-3d}
+  .pc3d-face{position:absolute;width:36px;height:36px;border-radius:9px;box-sizing:border-box;border:2.5px solid #0f1122;
+    box-shadow:inset 0 3px 5px rgba(255,255,255,.32),inset 0 -6px 9px rgba(0,0,0,.34)}
+  .pc-count{text-align:center;font-weight:800;color:#7a86a8;font-size:15px}
+  .pc-msg{text-align:center;font-weight:900;font-size:22px;color:#1ea85a;min-height:26px;opacity:0;transform:scale(.8);transition:opacity .2s,transform .2s}
+  .pc-msg.show{opacity:1;transform:scale(1)}
+  .pc-hint{text-align:center;color:#8890ab;font-size:13px;font-weight:700;margin:2px 0 14px}
+  .pc-controls{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;max-width:330px;margin:0 auto}
+  .pc-fc{border-radius:14px;padding:7px 6px 8px;background:#f2f4fb;border:2px solid #e2e6f3;text-align:center}
+  .pc-fc-name{font-size:13px;font-weight:800;color:#3a4568;margin-bottom:5px;display:flex;align-items:center;justify-content:center;gap:5px}
+  .pc-fc-dot{width:12px;height:12px;border-radius:4px;border:1.5px solid rgba(0,0,0,.25);display:inline-block;flex-shrink:0}
+  .pc-fc-btns{display:flex;gap:6px;justify-content:center}
+  .pc-turn{width:42px;height:42px;border-radius:11px;border:none;font-size:21px;font-weight:900;cursor:pointer;line-height:1;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);text-shadow:0 1px 1px rgba(0,0,0,.22)}
+  .pc-turn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+  .pc-actions{display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+  .pc-actions .big-btn{flex:1;min-width:100px}
 
   /* SOLVE MY CUBE */
   .sc-tip{background:#e6fbf7;border:2px dashed #12c2b8;border-radius:14px;padding:12px 14px;font-size:14px;
@@ -350,7 +344,7 @@
       <button class="tile timer" onclick="go('timer')"><span class="emoji">⏱️</span>Speed Timer</button>
       <button class="tile videos" onclick="go('videos')"><span class="emoji">📺</span>Watch Videos</button>
       <button class="tile cubes" onclick="go('cubes')"><span class="emoji">📖</span>Cube Guide</button>
-      <button class="tile games" onclick="go('games')"><span class="emoji">🎮</span>Cube Games</button>
+      <button class="tile games" onclick="go('games')"><span class="emoji">🧊</span>Play Cube</button>
       <button class="tile fixer" onclick="go('fixer')"><span class="emoji">🪄</span>Solve My Cube</button>
     </div>
   </section>
@@ -413,18 +407,8 @@
 
   <!-- GAMES -->
   <section class="screen" id="games">
-    <h2 class="title">🎮 Cube Games</h2>
-    <div class="game-menu" id="gamesMenu">
-      <button class="game-card memory" onclick="startMemory()">
-        <span class="gemoji">🌈</span>
-        <span><span class="gname">Color Memory</span><br><span class="gdesc">Watch the colors, then tap them back in order!</span></span>
-      </button>
-      <button class="game-card pop" onclick="startPop()">
-        <span class="gemoji">⚡</span>
-        <span><span class="gname">Color Pop</span><br><span class="gdesc">Tap the matching color as fast as you can!</span></span>
-      </button>
-    </div>
-    <div class="card" id="gameStage" style="display:none"></div>
+    <h2 class="title">🧊 Play Cube</h2>
+    <div class="card" id="playCube"></div>
   </section>
 
   <!-- SOLVE MY CUBE -->
@@ -526,7 +510,7 @@ const CREATORS = [
 
 /* ---------- navigation ---------- */
 function go(id){
-  if(document.getElementById('games').classList.contains('active') && id!=='games') stopGame();
+  if(document.getElementById('games').classList.contains('active') && id!=='games') pcStop();
   if(document.getElementById('videos').classList.contains('active') && id!=='videos') stopVideoPlayer();
   if(document.getElementById('fixer').classList.contains('active') && id!=='fixer') scCamStop();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -535,7 +519,7 @@ function go(id){
   window.scrollTo(0,0);
   if(id==='timer' && !scramble.textContent.startsWith('R') ) newScramble();
   if(id==='cubes') renderCubes();
-  if(id==='games') showGamesMenu();
+  if(id==='games') pcEnter();
   if(id==='fixer') scEnter();
   if(id==='videos') videosHome();
 }
@@ -998,154 +982,141 @@ function closeCubeDetail(){
 /* ============================================================
    CUBE GAMES
    ============================================================ */
-const GCOLORS=[
-  {n:'White', c:'#f8f8f8'},{n:'Yellow',c:'#ffd500'},{n:'Red',   c:'#e23b3b'},
-  {n:'Orange',c:'#ff8a00'},{n:'Blue',  c:'#2b7fff'},{n:'Green', c:'#38c66d'},
-];
-const ri=n=>Math.floor(Math.random()*n);
-const wait=ms=>new Promise(r=>setTimeout(r,ms));
-let gameToken=0, popTimer=null;
-
-function showGamesMenu(){
-  stopGame();
-  document.getElementById('gamesMenu').style.display='grid';
-  document.getElementById('gameStage').style.display='none';
-}
-function stopGame(){
-  gameToken++;                                       // cancels pending game callbacks
-  if(popTimer){clearInterval(popTimer);popTimer=null;}
-}
-function openStage(html){
-  document.getElementById('gamesMenu').style.display='none';
-  const st=document.getElementById('gameStage');
-  st.style.display='block';
-  st.innerHTML='<button class="big-btn alt" style="margin-bottom:14px" onclick="showGamesMenu()">← Games</button>'+html;
-}
-
-/* ----- Color Memory (Simon style) ----- */
-let memSeq=[],memInput=[],memBusy=false,memBest=0;
-function startMemory(){
-  stopGame();
-  memSeq=[];memInput=[];memBusy=false;memBest=load('cc_mem_best',0);
-  openStage(
-    '<div class="game-area">'+
-      '<div class="game-score" id="memScore"></div>'+
-      '<div class="simon" id="simonGrid"></div>'+
-      '<div class="game-msg" id="memMsg">Watch closely…</div>'+
-      '<button class="big-btn" id="memGo" style="display:none">▶ Play again</button>'+
-    '</div>');
-  const grid=document.getElementById('simonGrid');
-  GCOLORS.forEach((col,i)=>{
-    const b=document.createElement('button');
-    b.className='spad';b.style.background=col.c;b.id='spad'+i;b.onclick=()=>memTap(i);
-    grid.appendChild(b);
-  });
-  updateMemScore();
-  memNext();
-}
-function updateMemScore(){
-  const el=document.getElementById('memScore');
-  if(el) el.textContent='Round: '+memSeq.length+'   •   Best: '+memBest;
-}
-function memNext(){
-  if(!document.getElementById('simonGrid'))return;
-  memInput=[];memSeq.push(ri(6));updateMemScore();flashSeq();
-}
-async function flashSeq(){
-  const my=gameToken;memBusy=true;
-  const msg=document.getElementById('memMsg');if(msg)msg.textContent='Watch closely…';
-  await wait(500);
-  for(const idx of memSeq){
-    if(my!==gameToken)return;
-    const p=document.getElementById('spad'+idx);if(!p)return;
-    p.classList.add('lit');await wait(480);p.classList.remove('lit');await wait(180);
-  }
-  if(my!==gameToken)return;
-  memBusy=false;
-  const m=document.getElementById('memMsg');if(m)m.textContent='Your turn! 👆';
-}
-function memTap(i){
-  if(memBusy)return;
-  const p=document.getElementById('spad'+i);p.classList.add('lit');setTimeout(()=>p.classList.remove('lit'),160);
-  memInput.push(i);
-  const pos=memInput.length-1;
-  if(memInput[pos]!==memSeq[pos]){memOver();return;}
-  if(memInput.length===memSeq.length){
-    if(memSeq.length>memBest){memBest=memSeq.length;save('cc_mem_best',memBest);}
-    updateMemScore();
-    document.getElementById('memMsg').textContent='Nice! ⭐';
-    memBusy=true;
-    const my=gameToken;
-    setTimeout(()=>{if(my===gameToken)memNext();},700);
+/* PLAY CUBE — an interactive virtual 3x3 the kid can turn, scramble, undo, and watch
+   solve itself. Reuses the home mascot's piece-based turn engine helpers (hcMul/hcMulV/
+   hcBase/hcBright/hcTps + HCX/HCY/HCZ/HC_FACES/HC_COL/HC_DARK) as a SEPARATE, user-driven
+   instance (pc*). Buildless, offline, no libs. Colours match the mascot: white up,
+   yellow down, red right, orange left, green front, blue back. */
+const PC_TURN_MS=240;                                   /* one satisfying quarter-turn */
+/* each side -> {axis, layer, dir}: dir is a quarter-turn CLOCKWISE looking at that side
+   from outside (the '↻' button); the '↺' button uses -dir. Axes 0=x,1=y,2=z. */
+const PC_MOVES={
+  U:{axis:1,layer:-1,dir:-1}, D:{axis:1,layer: 1,dir: 1},
+  R:{axis:0,layer: 1,dir: 1}, L:{axis:0,layer:-1,dir:-1},
+  F:{axis:2,layer: 1,dir: 1}, B:{axis:2,layer:-1,dir:-1}
+};
+const PC_FACE_NAME={U:'White',D:'Yellow',R:'Red',L:'Orange',F:'Green',B:'Blue'};
+const PC_FACE_COL ={U:'#f8f8f8',D:'#ffd500',R:'#e23b3b',L:'#ff8a00',F:'#38c66d',B:'#2b7fff'};
+let pcCubies=[], pcCubeEl=null, pcTimer=null, pcQueue=[], pcBusy=false, pcHistory=[], pcMoves=0, pcWasSolved=true;
+let pcRX=-28, pcRY=-32, pcDrag=false, pcLX=0, pcLY=0, pcDragWired=false;
+function pcBuild(){
+  pcCubies=[]; if(!pcCubeEl)return; pcCubeEl.innerHTML='';
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    if(!x&&!y&&!z)continue;                              /* skip the hidden core */
+    const home=[x,y,z], el=document.createElement('div'); el.className='pc3d-cubie'; const faces=[];
+    for(const fd of HC_FACES){
+      const fe=document.createElement('div'); fe.className='pc3d-face';
+      const colored=(home[0]*fd.n[0]+home[1]*fd.n[1]+home[2]*fd.n[2])===1;   /* sticker only on exterior sides */
+      fe.style.background=colored?HC_COL[fd.k]:HC_DARK;
+      fe.style.transform=fd.t;
+      fe.style.filter='brightness('+hcBright(fd.n).toFixed(2)+')';
+      el.appendChild(fe); faces.push({el:fe,n:fd.n.slice()});
+    }
+    const R=[[1,0,0],[0,1,0],[0,0,1]];
+    el.style.transform=hcBase(home,R);
+    pcCubeEl.appendChild(el);
+    pcCubies.push({el,home,pos:home.slice(),R,faces});
   }
 }
-function memOver(){
-  memBusy=true;
-  document.getElementById('memMsg').textContent='Oops! You remembered '+(memSeq.length-1)+' 🎯';
-  const go=document.getElementById('memGo');go.style.display='inline-block';go.onclick=startMemory;
+function pcApplyView(){ if(pcCubeEl)pcCubeEl.style.transform='translateZ(-24px) rotateX('+pcRX+'deg) rotateY('+pcRY+'deg)'; }
+function pcTurn(axis,layer,dir,dur,done){
+  const base=[HCX,HCY,HCZ][axis], Rt=dir>0?base:hcTps(base);
+  const axv=axis===0?'1,0,0':axis===1?'0,1,0':'0,0,1', ang=(dir*90)+'deg';
+  const movers=pcCubies.filter(c=>c.pos[axis]===layer);
+  for(const c of movers){
+    c.el.style.transition='transform '+dur+'ms cubic-bezier(.45,.05,.3,1)';
+    c.el.style.transform='rotate3d('+axv+','+ang+') '+hcBase(c.pos,c.R);     /* pivots about cube centre */
+  }
+  pcTimer=setTimeout(()=>{
+    for(const c of movers){                                                  /* commit: bake the same rotation in */
+      c.R=hcMul(Rt,c.R); c.pos=hcMulV(Rt,c.pos);
+      for(const f of c.faces){f.n=hcMulV(Rt,f.n); f.el.style.filter='brightness('+hcBright(f.n).toFixed(2)+')';}
+      c.el.style.transition='none'; c.el.style.transform=hcBase(c.pos,c.R);
+    }
+    if(pcCubeEl)void pcCubeEl.offsetWidth;
+    if(done)done();
+  },dur+18);
 }
-
-/* ----- Color Pop (speed matching) ----- */
-let popScore=0,popLeft=0,popTarget=0,popBest=0;
-function startPop(){
-  stopGame();
-  popScore=0;popLeft=30;popBest=load('cc_pop_best',0);
-  openStage(
-    '<div class="game-area">'+
-      '<div class="pop-target" id="popTarget"></div>'+
-      '<div class="timebar"><i id="popBar"></i></div>'+
-      '<div class="game-score" id="popScoreEl"></div>'+
-      '<div class="pop-grid" id="popGrid"></div>'+
-      '<div class="game-msg" id="popMsg"></div>'+
-    '</div>');
-  updatePopScore();
-  newPopRound();
-  const my=gameToken;
-  popTimer=setInterval(()=>{
-    if(my!==gameToken){clearInterval(popTimer);return;}
-    popLeft-=0.1;
-    const bar=document.getElementById('popBar');
-    if(popLeft<=0){popLeft=0;if(bar)bar.style.width='0%';popDone();return;}
-    if(bar)bar.style.width=(popLeft/30*100)+'%';
-  },100);
-}
-function updatePopScore(){
-  const el=document.getElementById('popScoreEl');
-  if(el) el.textContent='Score: '+popScore+'   •   Best: '+popBest;
-}
-function newPopRound(){
-  if(!document.getElementById('popGrid'))return;
-  popTarget=ri(6);
-  document.getElementById('popTarget').innerHTML=
-    'Tap the '+GCOLORS[popTarget].n+' <span class="pop-swatch" style="background:'+GCOLORS[popTarget].c+'"></span>';
-  const tiles=[];for(let i=0;i<8;i++)tiles.push(ri(6));
-  if(!tiles.includes(popTarget))tiles[ri(8)]=popTarget;   // guarantee a match exists
-  const grid=document.getElementById('popGrid');grid.innerHTML='';
-  tiles.forEach(ci=>{
-    const b=document.createElement('button');b.className='pop-tile';b.style.background=GCOLORS[ci].c;
-    b.onclick=()=>popTap(ci);grid.appendChild(b);
+function pcSolvedQ(){ return pcCubies.every(c=>c.pos[0]===c.home[0]&&c.pos[1]===c.home[1]&&c.pos[2]===c.home[2]&&c.R[0][0]===1&&c.R[1][1]===1&&c.R[2][2]===1); }
+function pcEnqueue(mv){ pcQueue.push(mv); if(!pcBusy)pcRunNext(); }
+function pcRunNext(){
+  if(!pcQueue.length){ pcBusy=false; return; }
+  pcBusy=true; const mv=pcQueue.shift();
+  pcTurn(mv.axis,mv.layer,mv.dir,mv.dur||PC_TURN_MS,()=>{
+    if(mv.record!==false){ pcHistory.push(mv); pcMoves++; }
+    pcUpdateCount();
+    const solved=pcSolvedQ();
+    if(solved && !pcWasSolved && !pcQueue.length) pcCelebrateSolved();
+    pcWasSolved=solved;
+    pcRunNext();
   });
 }
-function popTap(ci){
-  if(popLeft<=0)return;
-  const msg=document.getElementById('popMsg');
-  if(ci===popTarget){
-    popScore++;
-    if(popScore>popBest){popBest=popScore;save('cc_pop_best',popBest);}
-    msg.textContent='';newPopRound();
-  }else{
-    popScore=Math.max(0,popScore-1);msg.textContent='Not that one! 🙈';
+function pcMove(face){ const m=PC_MOVES[face]; if(m)pcEnqueue({axis:m.axis,layer:m.layer,dir:m.dir,face:face}); }
+function pcMovePrime(face){ const m=PC_MOVES[face]; if(m)pcEnqueue({axis:m.axis,layer:m.layer,dir:-m.dir,face:face}); }
+function pcScramble(){
+  if(pcQueue.length>4)return;                            /* don't stack scrambles */
+  const F=['U','D','R','L','F','B']; let prev='';
+  for(let i=0;i<22;i++){
+    let f; do{ f=F[(Math.random()*6)|0]; }while(f===prev); prev=f;
+    const m=PC_MOVES[f], d=Math.random()<0.5?m.dir:-m.dir;
+    pcEnqueue({axis:m.axis,layer:m.layer,dir:d,face:f,dur:150});
   }
-  updatePopScore();
 }
-function popDone(){
-  if(popTimer){clearInterval(popTimer);popTimer=null;}
-  const grid=document.getElementById('popGrid');if(grid)grid.innerHTML='';
-  document.getElementById('popTarget').innerHTML='⏰ Time!';
-  document.getElementById('popMsg').innerHTML=
-    'You scored <b>'+popScore+'</b>! 🎉<br>'+
-    '<button class="big-btn" style="margin-top:12px" onclick="startPop()">▶ Play again</button>';
+function pcUndo(){
+  if(pcBusy||!pcHistory.length)return;
+  const mv=pcHistory.pop(); pcMoves=Math.max(0,pcMoves-1);
+  pcEnqueue({axis:mv.axis,layer:mv.layer,dir:-mv.dir,face:mv.face,record:false});
 }
+function pcSolveIt(){                                     /* watch it solve itself: replay history backwards (exact inverse) */
+  if(pcBusy)return;
+  if(pcSolvedQ()){ pcCelebrateSolved(); return; }
+  const seq=pcHistory.slice().reverse(); pcHistory=[]; pcMoves=0; pcUpdateCount();
+  for(const mv of seq) pcEnqueue({axis:mv.axis,layer:mv.layer,dir:-mv.dir,face:mv.face,dur:150,record:false});
+}
+function pcUpdateCount(){ const el=document.getElementById('pcCount'); if(el)el.textContent=pcMoves+(pcMoves===1?' move':' moves'); }
+function pcCelebrateSolved(){ const el=document.getElementById('pcMsg'); if(el){ el.textContent='🎉 Solved!'; el.classList.add('show'); clearTimeout(pcCelebrateSolved._t); pcCelebrateSolved._t=setTimeout(()=>el.classList.remove('show'),1700); } }
+function pcStop(){ pcQueue=[]; if(pcTimer){clearTimeout(pcTimer);pcTimer=null;} pcBusy=false; }
+function pcFaceCtrl(face){
+  const fc=PC_FACE_COL[face], tc=(face==='U'||face==='D')?'#333':'#fff';    /* white/yellow faces need a dark glyph */
+  const b=prime=>'<button class="pc-turn" style="background:'+fc+';color:'+tc+'" onclick="'+(prime?'pcMovePrime':'pcMove')+'(\''+face+'\')" title="'+PC_FACE_NAME[face]+(prime?' — other way':' — turn')+'">'+(prime?'↺':'↻')+'</button>';
+  return '<div class="pc-fc"><div class="pc-fc-name"><span class="pc-fc-dot" style="background:'+fc+'"></span>'+PC_FACE_NAME[face]+'</div><div class="pc-fc-btns">'+b(false)+b(true)+'</div></div>';
+}
+function pcUIHTML(){
+  const ctrls=['U','R','F','D','L','B'].map(pcFaceCtrl).join('');
+  return '<div class="pc-stage"><div class="pc3d-cube"></div></div>'+
+    '<div class="pc-count" id="pcCount">0 moves</div>'+
+    '<div class="pc-msg" id="pcMsg"></div>'+
+    '<div class="pc-hint">👆 Drag the cube to look around • tap a colour to turn that side</div>'+
+    '<div class="pc-controls">'+ctrls+'</div>'+
+    '<div class="pc-actions">'+
+      '<button class="big-btn" onclick="pcScramble()">🔀 Mix it up</button>'+
+      '<button class="big-btn alt" onclick="pcUndo()">↩️ Undo</button>'+
+      '<button class="big-btn alt" onclick="pcSolveIt()">✨ Solve it</button>'+
+    '</div>';
+}
+function pcEnter(){
+  const host=document.getElementById('playCube'); if(!host)return;
+  host.innerHTML=pcUIHTML();
+  pcCubeEl=host.querySelector('.pc3d-cube');
+  pcQueue=[]; pcBusy=false; pcHistory=[]; pcMoves=0; pcWasSolved=true;
+  pcBuild(); pcApplyView(); pcUpdateCount(); pcInitDrag();
+}
+function pcInitDrag(){
+  const stage=document.querySelector('#playCube .pc-stage'); if(!stage)return;
+  stage.addEventListener('mousedown',pcDragDown);
+  stage.addEventListener('touchstart',pcDragDown,{passive:true});
+  if(!pcDragWired){                                       /* window listeners wired once (stage is rebuilt each visit) */
+    window.addEventListener('mousemove',pcDragMove);
+    window.addEventListener('mouseup',pcDragUp);
+    window.addEventListener('touchmove',pcDragMove,{passive:false});
+    window.addEventListener('touchend',pcDragUp);
+    pcDragWired=true;
+  }
+}
+function pcDragDown(e){ pcDrag=true; const p=e.touches?e.touches[0]:e; pcLX=p.clientX; pcLY=p.clientY; }
+function pcDragMove(e){ if(!pcDrag)return; const p=e.touches?e.touches[0]:e; pcRY+=(p.clientX-pcLX)*0.5; pcRX-=(p.clientY-pcLY)*0.5; pcRX=Math.max(-85,Math.min(85,pcRX)); pcLX=p.clientX; pcLY=p.clientY; pcApplyView(); if(e.type==='touchmove'&&e.cancelable)e.preventDefault(); }
+function pcDragUp(){ pcDrag=false; }
+
 
 /* ============================================================
    SOLVE MY CUBE — cube engine + beginner-method solver + color input

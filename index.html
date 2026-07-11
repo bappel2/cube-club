@@ -300,6 +300,32 @@
     background:#e6fbf7;border:2px solid #12c2b8;border-radius:14px;padding:10px 14px}
   .sc-fixmsg{text-align:center;font-weight:800;font-size:14px;line-height:1.4;margin:2px 0 10px;color:#8a4b00;
     background:#fff3d6;border:2px solid #ffb84d;border-radius:14px;padding:9px 13px}
+  /* CUBE COACH — a "nudge, don't blind-lead" hint ladder + on-device voice */
+  .coach-cta{width:100%;box-sizing:border-box;margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1.1;background:linear-gradient(150deg,#12b5a6,#0a8f9c)}
+  .coach-head{text-align:center;font-weight:900;font-size:21px;margin-bottom:8px}
+  .coach-banner{background:#eafaf0;border:2px solid #38c66d;border-radius:14px;padding:9px 13px;text-align:center;font-weight:800;font-size:14.5px;color:#146c3a;line-height:1.4;margin-bottom:6px}
+  .coach-style{display:flex;align-items:center;justify-content:center;gap:6px;margin:10px 0 2px;flex-wrap:wrap}
+  .coach-style-lbl{font-size:13px;font-weight:800;color:#777}
+  .coach-seg{border:2px solid #cfd3e6;background:#f2f3fb;color:#666;font-weight:800;font-size:13px;border-radius:12px;padding:6px 12px;cursor:pointer;font-family:inherit}
+  .coach-seg.on{background:linear-gradient(150deg,#6a5cff,#2b7fff);border-color:#6a5cff;color:#fff}
+  .coach-card{background:#f4f2ff;border:2px solid #d9d3ff;border-radius:18px;padding:14px 15px;margin:10px 0}
+  .coach-label{font-size:12px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:#8a7fe0;margin-bottom:5px}
+  .coach-sub{font-size:14px;font-weight:800;color:#6a5cff;margin-bottom:8px;line-height:1.35}
+  .coach-big{font-size:19px;font-weight:800;line-height:1.45;color:#2a2d47}
+  .coach-moves{margin-top:10px;display:flex;flex-direction:column;gap:7px}
+  .coach-move{display:flex;align-items:center;gap:12px;background:#20233a;border-radius:12px;padding:8px 12px;color:#fff}
+  .coach-movetok{font-size:24px;font-weight:900;color:#ffd500;min-width:46px;text-align:center;letter-spacing:1px}
+  .coach-movehelp{font-size:15px;font-weight:800}
+  .coach-dots{display:flex;align-items:center;gap:7px;margin-top:12px}
+  .coach-dot{width:11px;height:11px;border-radius:50%;background:#d3cdf0}
+  .coach-dot.on{background:#6a5cff}
+  .coach-dotlbl{font-size:12px;font-weight:800;color:#8a7fe0;margin-left:5px}
+  .coach-more{width:100%;box-sizing:border-box;background:linear-gradient(150deg,#6a5cff,#8a5cff);margin-top:12px}
+  .coach-voice{width:100%;box-sizing:border-box;background:#eef0fb;color:#3a3f66;border:2px solid #cfd3e6;margin-top:8px}
+  .coach-voice.on{background:#e6f6ff;border-color:#2b7fff;color:#0a5a99}
+  .coach-actions{display:flex;gap:10px;margin-top:12px}
+  .coach-didit{flex:2;background:linear-gradient(150deg,#38c66d,#1ea85a)}
+  .coach-solve{flex:1;background:#9aa0b8;font-size:14px}
 
   /* SOLVE-MY-CUBE 3D CUBE (pure CSS 3D, draggable; used in entry + preview, sizes set inline) */
   .sc3d-wrap{display:flex;flex-direction:column;align-items:center;margin:10px 0 0}
@@ -518,7 +544,7 @@ const CREATORS = [
 function go(id){
   if(document.getElementById('games').classList.contains('active') && id!=='games') pcStop();
   if(document.getElementById('videos').classList.contains('active') && id!=='videos') stopVideoPlayer();
-  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer') scCamStop();
+  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer'){ scCamStop(); scStopVoice(); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
@@ -1312,11 +1338,17 @@ const MOVEHELP={
  "B":"back → turn ↻","B'":"back → turn ↺","B2":"back → half around",
 };
 let scMode='intro', scFaceIdx=0, scPaintColor='D', scCursor=0, scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null, scQuick=false, scEditing=false, scLastMode='learn', scFixMsg='';
+/* Cube Coach state: which of the 7 steps he's stuck on, how far up the hint ladder,
+   the tunable style (gentle hints vs. show-the-steps), and the on-device voice toggle. */
+let scCoachGi=0, scCoachRung=0, scCoachStyle=load('cc_coach_style','gentle'), scVoiceOn=!!load('cc_coach_voice',false);
+const SC_TTS=(typeof window!=='undefined' && 'speechSynthesis' in window);
+const scCoachStartRung=()=>scCoachStyle==='steps'?1:0;   /* "show steps" starts one rung higher */
 const SC_ORDER=[0,1,2,3,5,6,7,8];                       /* the 8 non-centre squares, reading order (skips centre 4) */
 const SCKEY={W:'D',Y:'U',R:'L',O:'R',B:'B',G:'F'};      /* typed colour initial -> internal face letter */
 function scReset(){
   scEntry={};FACE_ORDER.forEach(f=>{const a=new Array(9).fill(null);a[4]=f;scEntry[f]=a;});
   scFaceIdx=0;scPaintColor='D';scCursor=0;scGroups=null;scFlat=null;scMoveIdx=0;scState0=null;scQuick=false;scEditing=false;scFixMsg='';
+  scCoachGi=0;scCoachRung=0;
 }
 function scEnter(){ if(!scEntry)scReset(); scRender(); }
 function scRender(){
@@ -1328,6 +1360,7 @@ function scRender(){
   else if(scMode==='scan')area.innerHTML=scScanHTML();
   else if(scMode==='error')area.innerHTML=scErrorHTML(scErrMsg);
   else if(scMode==='guide'){area.innerHTML=scGuideHTML();scInitCube3D();}
+  else if(scMode==='coach'){area.innerHTML=scCoachHTML();scInitCube3D();}
 }
 function scIntroHTML(){
   const s=scSavedCube();
@@ -1642,7 +1675,9 @@ function scStartSolve(mode){
       groups=res.groups;flat=[];groups.forEach((g,gi)=>g.moves.forEach(m=>flat.push({m,name:g.name,gi})));
     }
     scState0=parsed.state;scGroups=groups;scFlat=flat;scQuick=quick;scEditing=false;scFixMsg='';
-    scMoveIdx=0;sc3d.mode='entry';scSetGuideView(scFlat[0].m[0]);scMode='guide';scRender();
+    scMoveIdx=0;
+    if(mode==='coach'){ scCoachInit(); return; }   /* 🧭 coach me — same solve, hint-ladder presentation */
+    sc3d.mode='entry';scSetGuideView(scFlat[0].m[0]);scMode='guide';scRender();
   },40);
 }
 /* Re-open the color editor pre-filled with the cube's CURRENT state (after the moves done so far),
@@ -1654,7 +1689,7 @@ function scFixHere(){
   scEditing=true;scFixMsg='';scFaceIdx=0;scCursor=0;scMode='entry';sc3d.mode='entry';scSetFaceView(0);scRender();window.scrollTo(0,0);
 }
 function scSolveAgain(){scStartSolve(scLastMode||'learn');}
-function scCancelFix(){scEditing=false;scFixMsg='';scMode='guide';scRender();window.scrollTo(0,0);}
+function scCancelFix(){scEditing=false;scFixMsg='';scMode=(scLastMode==='coach')?'coach':'guide';scRender();window.scrollTo(0,0);}
 function scFixMsgHTML(){
   if(!scFixMsg)return '';
   const t = scFixMsg==='count'
@@ -1809,7 +1844,7 @@ function sc3dTick(){
   if(!moved && sc3d.mode!=='preview'){sc3d.raf=0;return;}              // sleep when settled (entry)
   sc3d.raf=requestAnimationFrame(sc3dTick);
 }
-function scShowPreview(){sc3d.mode='preview';sc3d.tgx=sc3d.tgy=null;sc3d.rx=-22;sc3d.ry=-34;sc3d.idle=0;scMode='preview';scRender();window.scrollTo(0,0);}
+function scShowPreview(){scStopVoice();sc3d.mode='preview';sc3d.tgx=sc3d.tgy=null;sc3d.rx=-22;sc3d.ry=-34;sc3d.idle=0;scMode='preview';scRender();window.scrollTo(0,0);}
 function scBackToEntry(){sc3d.mode='entry';scMode='entry';scFaceIdx=0;scCursor=scFirstEmpty(FACE_ORDER[0]);scSetFaceView(0);scRender();window.scrollTo(0,0);}
 function scPreviewHTML(){
   return '<div class="card">'+
@@ -1821,11 +1856,175 @@ function scPreviewHTML(){
       '<button class="big-btn" onclick="scDoSolve()">✨ Solve it!<span class="sc-btnsub">learn the steps</span></button>'+
       '<button class="big-btn alt2" onclick="scQuickSolve()">⚡ Quick fix<span class="sc-btnsub">fewest moves</span></button>'+
     '</div>'+
+    '<button class="big-btn coach-cta" onclick="scCoachSolve()">🧭 I\'m stuck — coach me<span class="sc-btnsub">a nudge, not the answer</span></button>'+
     '<div class="step-nav" style="margin-top:10px">'+
       '<button class="big-btn alt" onclick="scBackToEntry()">← Fix a side</button>'+
       '<button class="sc-actionbtn save" onclick="scSaveForLater()">💾 Save for later</button>'+
     '</div></div>';
 }
+
+/* =========================================================================
+   CUBE COACH — for the kid who gets partway on his own, then gets stuck.
+   Instead of dumping the whole solution, it gives the SMALLEST push first
+   (what step to work on), then reveals more only when he taps for it — a
+   4-rung hint ladder per step (mission -> what to look for -> which way ->
+   the actual turns). It reuses the trusted beginner-method solve (scGroups):
+   the first step that still has moves is exactly the one he's stuck on, and
+   every step before it he already did himself (so we open with real praise).
+   Tunable (gentle hints vs. show-the-steps) + optional on-device voice. ==== */
+const SC_COACH=[
+ {emoji:'⬜',done:'the white cross',
+  mission:'Make a white <b>plus sign</b> on the bottom — the white center with 4 white edges around it.',
+  look:'Find the edge pieces that have <b>white</b> on them (white plus one other color).',
+  which:'Spin each white edge so its <b>other color</b> matches that side\'s center, then bring it down to the bottom.'},
+ {emoji:'⬜',done:'the white corners',
+  mission:'Fill the 4 <b>bottom corners</b> so the whole white side is finished.',
+  look:'Find a corner piece with <b>white</b> in it sitting up on the top layer.',
+  which:'Move it right above the spot it belongs, then tuck it down. Do that for all 4 corners.'},
+ {emoji:'🟩',done:'the middle row',
+  mission:'Fill the <b>middle band</b> so the sides match all the way around.',
+  look:'Find a top edge with <b>no yellow</b> on it — that piece belongs in the middle.',
+  which:'Turn the top so its front color matches the center, then send it down to the <b>left or right</b>.'},
+ {emoji:'🟨',done:'the yellow cross',
+  mission:'Make a <b>yellow plus sign</b> on the top face.',
+  look:'Look at the yellow on top — do you see a <b>dot</b>, an <b>L shape</b>, or a <b>line</b>?',
+  which:'Do the top trick and watch it grow: dot into an L, L into a line, line into the full plus.'},
+ {emoji:'🟨',done:'the yellow face',
+  mission:'Turn the <b>whole top</b> face yellow.',
+  look:'Count how many top <b>corners</b> are already yellow on top right now.',
+  which:'Keep doing the corner trick, spinning the top a little between tries, until all 4 flip yellow.'},
+ {emoji:'🟨',done:'the top corners',
+  mission:'Put the top <b>corners</b> in their right spots (they can still be twisted for now).',
+  look:'Find a corner that\'s <b>already home</b> — both of its side colors already match.',
+  which:'Hold that corner at the front-right and do the swap trick to move the other corners in.'},
+ {emoji:'🎉',done:'the last edges',
+  mission:'Slide the last <b>edges</b> into place — this is the final step!',
+  look:'See which whole side is <b>already solved</b>.',
+  which:'Point that solved side away from you, then do the last trick. You are SO close!'},
+];
+/* index of the first / next beginner step that still has work to do */
+function scCoachFirstGi(){for(let i=0;i<scGroups.length;i++)if(scGroups[i].moves.length)return i;return -1;}
+function scCoachNextGi(gi){for(let i=gi+1;i<scGroups.length;i++)if(scGroups[i].moves.length)return i;return -1;}
+/* keep scMoveIdx pointed at the start of the current step, so the shared
+   "😕 my cube looks different" fixer pre-fills the cube's CURRENT state */
+function scCoachSyncIdx(){scMoveIdx=scFlat.filter(x=>x.gi<scCoachGi).length;}
+/* the cube as it is NOW = start cube + every move from the steps he's already done */
+function scCoachDispState(){
+  const before=scFlat.filter(x=>x.gi<scCoachGi).map(x=>x.m);
+  return scFacelet2Entry(cbToFacelet(cbApply(cbClone(scState0),before)));
+}
+function scCoachInit(){
+  const gi=scCoachFirstGi();
+  if(gi<0){scErrMsg='already';scMode='error';scRender();return;}   /* guarded upstream, but be safe */
+  scCoachGi=gi; scCoachRung=scCoachStartRung(); scCoachSyncIdx();
+  sc3d.mode='entry'; scMode='coach';
+  scSetGuideView(scGroups[gi].moves[0][0]);
+  scRender(); window.scrollTo(0,0);
+  if(scVoiceOn) scSpeak(scCoachEncourage()+' '+scStripForSpeech(SC_COACH[gi].mission));
+}
+function scCoachSolve(){scStartSolve('coach');}
+/* --- on-device voice (Web Speech API): no library, no network, nothing sent --- */
+function scSpeak(text){
+  if(!SC_TTS||!scVoiceOn||!text)return;
+  try{
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.rate=0.96; u.pitch=1.12; u.lang='en-US';
+    const vs=window.speechSynthesis.getVoices()||[];
+    const v=vs.find(x=>/en[-_]?US/i.test(x.lang)&&/(female|samantha|zira|aria|jenny|google)/i.test(x.name))||vs.find(x=>/^en/i.test(x.lang))||null;
+    if(v)u.voice=v;
+    window.speechSynthesis.speak(u);
+  }catch(_){}
+}
+function scStopVoice(){if(SC_TTS){try{window.speechSynthesis.cancel();}catch(_){}}}
+/* strip HTML tags + emoji/arrows so the spoken line stays clean */
+function scStripForSpeech(s){return String(s)
+  .replace(/<[^>]+>/g,'')
+  .replace(/[←-⇿⌀-➿⬀-⯿️]/g,'')
+  .replace(/[\u{1F000}-\u{1FAFF}]/gu,'')
+  .replace(/\s+/g,' ').trim();}
+function scCoachSayText(){
+  const c=SC_COACH[scCoachGi], r=scCoachRung;
+  let t;
+  if(r===0)t=c.mission;
+  else if(r===1)t=c.look;
+  else if(r===2)t=c.which;
+  else t='Try these turns. '+scGroups[scCoachGi].moves.map(m=>MOVEHELP[m]).join('. ');
+  return scStripForSpeech((r>0?c.mission.replace(/[.!?]+$/,'')+'. ':'')+t);
+}
+function scCoachEncourage(){
+  const done=[];for(let i=0;i<scCoachGi;i++)done.push(SC_COACH[i].done.replace(/^the /,''));
+  if(!done.length)return "Let's solve your cube together! You've got this.";
+  if(done.length===1)return 'Nice work — you finished '+done[0]+'!';
+  return 'Awesome — you finished '+done.slice(0,-1).join(', ')+' and '+done[done.length-1]+'!';
+}
+function scCoachBannerHTML(){
+  const done=[];for(let i=0;i<scCoachGi;i++)done.push(SC_COACH[i].done);
+  let txt;
+  if(!done.length)txt="💪 Let's solve it together — you've got this!";
+  else if(done.length===1)txt='🎉 Nice — you finished '+done[0]+'!';
+  else txt='🎉 Awesome — you finished '+done.slice(0,-1).join(', ')+' and '+done[done.length-1]+'!';
+  return '<div class="coach-banner">'+txt+'</div>';
+}
+function scCoachStyleToggleHTML(){
+  return '<div class="coach-style">'+
+    '<span class="coach-style-lbl">Coaching:</span>'+
+    '<button class="coach-seg'+(scCoachStyle==='gentle'?' on':'')+'" onclick="scCoachSetStyle(\'gentle\')">🐢 Drop hints</button>'+
+    '<button class="coach-seg'+(scCoachStyle==='steps'?' on':'')+'" onclick="scCoachSetStyle(\'steps\')">🐇 Show steps</button>'+
+  '</div>';
+}
+function scCoachMovesHTML(){
+  const list=scGroups[scCoachGi].moves.map(m=>
+    '<div class="coach-move"><span class="coach-movetok">'+m+'</span><span class="coach-movehelp">'+MOVEHELP[m]+'</span></div>').join('');
+  return '<div class="coach-big" style="font-size:17px">👉 Try these turns on your real cube:</div><div class="coach-moves">'+list+'</div>';
+}
+function scCoachHintCard(){
+  const c=SC_COACH[scCoachGi], r=scCoachRung;
+  const sub=r>0?'<div class="coach-sub">'+c.emoji+' '+c.mission+'</div>':'';
+  let big;
+  if(r===0)big='<div class="coach-big">'+c.emoji+' '+c.mission+'</div>';
+  else if(r===1)big='<div class="coach-big">🔎 '+c.look+'</div>';
+  else if(r===2)big='<div class="coach-big">➡️ '+c.which+'</div>';
+  else big=scCoachMovesHTML();
+  const dots=[0,1,2,3].map(i=>'<span class="coach-dot'+(i<=r?' on':'')+'"></span>').join('');
+  return '<div class="coach-card">'+
+    '<div class="coach-label">Your next mission</div>'+sub+big+
+    '<div class="coach-dots">'+dots+'<span class="coach-dotlbl">hint '+(r+1)+' of 4</span></div>'+
+  '</div>';
+}
+function scCoachHTML(){
+  const face=scGroups[scCoachGi].moves[0][0];
+  const m0=scGroups[scCoachGi].moves[0];
+  const arrow=scCoachRung>=3?{face:face,dir:(m0.length===1?'cw':(m0[1]==='2'?'half':'ccw'))}:null;
+  const voiceBtn=SC_TTS?'<button class="big-btn coach-voice'+(scVoiceOn?' on':'')+'" onclick="scCoachToggleVoice()">'+(scVoiceOn?'🔊 Voice is on — tap to mute':'🔈 Say it out loud')+'</button>':'';
+  const moreBtn=scCoachRung<3?'<button class="big-btn coach-more" onclick="scCoachMore()">Show me a bit more 👇</button>':'';
+  return '<div class="card">'+
+    '<div class="coach-head">🧭 Cube Coach</div>'+
+    scCoachBannerHTML()+
+    scCube3DHTML(168,scCoachRung>=3?face:null,scCoachDispState(),arrow)+
+    scCoachStyleToggleHTML()+
+    scCoachHintCard()+
+    moreBtn+voiceBtn+
+    '<div class="coach-actions">'+
+      '<button class="big-btn coach-didit" onclick="scCoachDidIt()">✅ I did it!</button>'+
+      '<button class="big-btn coach-solve" onclick="scCoachToGuide()">🙈 Just solve it</button>'+
+    '</div>'+
+    '<div style="text-align:center;margin-top:12px"><button class="big-btn" style="background:#ff9500;font-size:14px;padding:8px 14px" onclick="scFixHere()">😕 My cube looks different</button></div>'+
+    '<div class="step-nav" style="margin-top:8px"><button class="big-btn alt" onclick="scShowPreview()">← Back to my cube</button></div>'+
+  '</div>';
+}
+function scCoachMore(){if(scCoachRung<3){scCoachRung++;scRender();window.scrollTo(0,0);if(scVoiceOn)scSpeak(scCoachSayText());}}
+function scCoachSetStyle(st){scCoachStyle=st;save('cc_coach_style',st);scCoachRung=scCoachStartRung();scRender();if(scVoiceOn)scSpeak(scCoachSayText());}
+function scCoachToggleVoice(){scVoiceOn=!scVoiceOn;save('cc_coach_voice',scVoiceOn);if(scVoiceOn){scRender();scSpeak(scCoachSayText());}else{scStopVoice();scRender();}}
+function scCoachDidIt(){
+  const nx=scCoachNextGi(scCoachGi);
+  const justDone=SC_COACH[scCoachGi].done;
+  if(nx<0){scStopVoice();celebrate('🎉','YOU DID IT!','You solved your cube — high five! ✋');scMode='intro';scRender();return;}
+  scCoachGi=nx; scCoachRung=scCoachStartRung(); scCoachSyncIdx();
+  scSetGuideView(scGroups[nx].moves[0][0]); scRender(); window.scrollTo(0,0);
+  if(scVoiceOn)scSpeak('Great, '+scStripForSpeech(justDone)+' done! '+scStripForSpeech(SC_COACH[nx].mission));
+}
+function scCoachToGuide(){scStopVoice();scCoachSyncIdx();sc3d.mode='entry';scSetGuideView(scFlat[scMoveIdx].m[0]);scMode='guide';scRender();window.scrollTo(0,0);}
 
 /* ---------- init ---------- */
 /* home mascot: a draggable-free pure-CSS 3D cube that turns one face every few seconds,

@@ -321,6 +321,19 @@
   .coach-dot.on{background:#6a5cff}
   .coach-dotlbl{font-size:12px;font-weight:800;color:#8a7fe0;margin-left:5px}
   .coach-more{width:100%;box-sizing:border-box;background:linear-gradient(150deg,#6a5cff,#8a5cff);margin-top:12px}
+  .coach-bites{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:12px 0 2px}
+  .coach-bite{width:22px;height:8px;border-radius:5px;background:#d3cdf0}
+  .coach-bite.on{background:#6a5cff}
+  .coach-bite.done{background:#38c66d}
+  .coach-lastbite{text-align:center;font-weight:800;color:#1ea85a;font-size:14px;margin-top:12px}
+  .coach-move{cursor:pointer;transition:background .12s,box-shadow .12s}
+  .coach-move.open{box-shadow:0 0 0 2.5px #6a5cff}
+  .coach-moveplay{margin-left:auto;font-size:13px;color:#ffd500;font-weight:900}
+  .coach-tap-hint{text-align:center;font-size:12.5px;font-weight:800;color:#8a7fe0;margin:4px 0 8px}
+  .coach-anim{background:#141627;border-radius:14px;padding:8px 6px 10px;margin:1px 0 3px;text-align:center}
+  .ca3d-stage{width:100%;height:150px;perspective:600px;display:flex;align-items:center;justify-content:center}
+  .ca3d-cube{position:relative;width:108px;height:108px;transform-style:preserve-3d;transition:transform .35s ease}
+  .coach-again{margin-top:4px;background:#3a3f66;color:#fff;border:0;border-radius:12px;font-weight:800;font-size:14px;padding:8px 16px;cursor:pointer;font-family:inherit}
   .coach-actions{display:flex;gap:10px;margin-top:12px}
   .coach-didit{flex:2;background:linear-gradient(150deg,#38c66d,#1ea85a)}
   .coach-solve{flex:1;background:#9aa0b8;font-size:14px}
@@ -542,7 +555,7 @@ const CREATORS = [
 function go(id){
   if(document.getElementById('games').classList.contains('active') && id!=='games') pcStop();
   if(document.getElementById('videos').classList.contains('active') && id!=='videos') stopVideoPlayer();
-  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer') scCamStop();
+  if(document.getElementById('fixer').classList.contains('active') && id!=='fixer'){ scCamStop(); caStop(); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('backBtn').style.display = id==='home' ? 'none' : 'inline-block';
@@ -1338,14 +1351,14 @@ const MOVEHELP={
 let scMode='intro', scFaceIdx=0, scPaintColor='D', scCursor=0, scEntry=null, scGroups=null, scFlat=null, scMoveIdx=0, scErrMsg='', scState0=null, scQuick=false, scEditing=false, scLastMode='learn', scFixMsg='';
 /* Cube Coach state: which of the 7 steps he's stuck on, how far up the hint ladder,
    the tunable style (gentle hints vs. show-the-steps), and the on-device voice toggle. */
-let scCoachGi=0, scCoachRung=0, scCoachStyle=load('cc_coach_style','gentle');
+let scCoachGi=0, scCoachRung=0, scCoachChunk=0, scCoachChunksCache=null, scCoachOpenMove=-1, scCoachStyle=load('cc_coach_style','gentle');
 const scCoachStartRung=()=>scCoachStyle==='steps'?1:0;   /* "show steps" starts one rung higher */
 const SC_ORDER=[0,1,2,3,5,6,7,8];                       /* the 8 non-centre squares, reading order (skips centre 4) */
 const SCKEY={W:'D',Y:'U',R:'L',O:'R',B:'B',G:'F'};      /* typed colour initial -> internal face letter */
 function scReset(){
   scEntry={};FACE_ORDER.forEach(f=>{const a=new Array(9).fill(null);a[4]=f;scEntry[f]=a;});
   scFaceIdx=0;scPaintColor='D';scCursor=0;scGroups=null;scFlat=null;scMoveIdx=0;scState0=null;scQuick=false;scEditing=false;scFixMsg='';
-  scCoachGi=0;scCoachRung=0;
+  scCoachGi=0;scCoachRung=0;scCoachChunk=0;scCoachChunksCache=null;scCoachOpenMove=-1;
 }
 function scEnter(){ if(!scEntry)scReset(); scRender(); }
 function scRender(){
@@ -1357,7 +1370,7 @@ function scRender(){
   else if(scMode==='scan')area.innerHTML=scScanHTML();
   else if(scMode==='error')area.innerHTML=scErrorHTML(scErrMsg);
   else if(scMode==='guide'){area.innerHTML=scGuideHTML();scInitCube3D();}
-  else if(scMode==='coach'){area.innerHTML=scCoachHTML();scInitCube3D();}
+  else if(scMode==='coach'){area.innerHTML=scCoachHTML();scInitCube3D();caPlayOpenMove();}
 }
 function scIntroHTML(){
   const s=scSavedCube();
@@ -1910,10 +1923,41 @@ function scCoachDispState(){
   const before=scFlat.filter(x=>x.gi<scCoachGi).map(x=>x.m);
   return scFacelet2Entry(cbToFacelet(cbApply(cbClone(scState0),before)));
 }
+/* A whole step can be 20+ turns (it places several pieces) — overwhelming for a young kid.
+   cbRunPhase builds a step by repeatedly finding ONE small algorithm (cbSearch) that lands
+   one more piece; each of those is a natural, bite-size sub-step. We replay that loop from
+   the step's start state and record each bite (simplified on its own), then hard-cap any
+   stray long bite to SC_COACH_BITE_MAX turns so no single "little step" is ever a wall.
+   Cached per step; the bites reach the SAME step-solved state as scFlat, so nothing drifts. */
+const SC_COACH_BITE_MAX=8;
+function scCoachGetChunks(){
+  if(scCoachChunksCache && scCoachChunksCache.gi===scCoachGi) return scCoachChunksCache.chunks;
+  const gi=scCoachGi, ph=PH[gi];
+  let s=cbApply(cbClone(scState0), scFlat.filter(x=>x.gi<gi).map(x=>x.m));
+  const bites=[]; let guard=0;
+  while(ph.score(s)<ph.target && guard++<80){
+    const f=cbSearch(s,ph.score,ph.maxLen,ph.lib);
+    if(!f) break;
+    for(const t of f) s=cbApply(cbClone(s),[t]);
+    const simp=cbSimplify(f);
+    for(let i=0;i<simp.length;i+=SC_COACH_BITE_MAX) bites.push(simp.slice(i,i+SC_COACH_BITE_MAX));
+  }
+  const chunks = bites.length ? bites : [scGroups[gi].moves.slice()];
+  scCoachChunksCache={gi, chunks};
+  return chunks;
+}
+/* cube state after the bites already ticked off in THIS step, so the 3D cube tracks progress */
+function scCoachChunkState(){
+  const chunks=scCoachGetChunks();
+  let s=cbApply(cbClone(scState0), scFlat.filter(x=>x.gi<scCoachGi).map(x=>x.m));
+  for(let i=0;i<scCoachChunk && i<chunks.length;i++) s=cbApply(cbClone(s), chunks[i]);
+  return scFacelet2Entry(cbToFacelet(s));
+}
+function scCoachNextChunk(){const chunks=scCoachGetChunks();if(scCoachChunk<chunks.length-1){scCoachChunk++;scCoachOpenMove=-1;scRender();window.scrollTo(0,0);}}
 function scCoachInit(){
   const gi=scCoachFirstGi();
   if(gi<0){scErrMsg='already';scMode='error';scRender();return;}   /* guarded upstream, but be safe */
-  scCoachGi=gi; scCoachRung=scCoachStartRung(); scCoachSyncIdx();
+  scCoachGi=gi; scCoachRung=scCoachStartRung(); scCoachChunk=0; scCoachChunksCache=null; scCoachOpenMove=-1; scCoachSyncIdx();
   sc3d.mode='entry'; scMode='coach';
   scSetGuideView(scGroups[gi].moves[0][0]);
   scRender(); window.scrollTo(0,0);
@@ -1935,9 +1979,32 @@ function scCoachStyleToggleHTML(){
   '</div>';
 }
 function scCoachMovesHTML(){
-  const list=scGroups[scCoachGi].moves.map(m=>
-    '<div class="coach-move"><span class="coach-movetok">'+m+'</span><span class="coach-movehelp">'+MOVEHELP[m]+'</span></div>').join('');
-  return '<div class="coach-big" style="font-size:17px">👉 Try these turns on your real cube:</div><div class="coach-moves">'+list+'</div>';
+  const chunks=scCoachGetChunks();
+  const idx=Math.min(scCoachChunk,chunks.length-1);
+  const mv=chunks[idx];
+  const multi=chunks.length>1;
+  const list=mv.map(function(m,j){
+    const open=(j===scCoachOpenMove);
+    const row='<div class="coach-move'+(open?' open':'')+'" onclick="scCoachTapMove('+j+')">'+
+      '<span class="coach-movetok">'+m+'</span>'+
+      '<span class="coach-movehelp">'+MOVEHELP[m]+'</span>'+
+      '<span class="coach-moveplay">'+(open?'▲':'▶')+'</span></div>';
+    const panel=open?('<div class="coach-anim">'+
+        '<div class="ca3d-stage" id="caStage"><div class="ca3d-cube" id="caCube"></div></div>'+
+        '<button class="coach-again" onclick="event.stopPropagation();caPlayOpenMove()">🔁 Watch it again</button>'+
+      '</div>'):'';
+    return row+panel;
+  }).join('');
+  const taphint='<div class="coach-tap-hint">👆 Tap a turn to watch the cube do it</div>';
+  const label=multi
+    ? '👉 Little step '+(idx+1)+' of '+chunks.length+' — just '+mv.length+' turn'+(mv.length===1?'':'s')+':'
+    : '👉 Try these turns on your real cube:';
+  const bar=multi?'<div class="coach-bites">'+chunks.map((c,i)=>
+    '<span class="coach-bite'+(i<idx?' done':(i===idx?' on':''))+'"></span>').join('')+'</div>':'';
+  const nextBtn=(idx<chunks.length-1)
+    ? '<button class="big-btn coach-more" onclick="scCoachNextChunk()">✅ Did those — next bit 👇</button>'
+    : (multi?'<div class="coach-lastbite">🎉 Last bit! Then tap ✅ I did it!</div>':'');
+  return '<div class="coach-big" style="font-size:17px">'+label+'</div>'+taphint+'<div class="coach-moves">'+list+'</div>'+bar+nextBtn;
 }
 function scCoachHintCard(){
   const c=SC_COACH[scCoachGi], r=scCoachRung;
@@ -1954,14 +2021,22 @@ function scCoachHintCard(){
   '</div>';
 }
 function scCoachHTML(){
-  const face=scGroups[scCoachGi].moves[0][0];
-  const m0=scGroups[scCoachGi].moves[0];
-  const arrow=scCoachRung>=3?{face:face,dir:(m0.length===1?'cw':(m0[1]==='2'?'half':'ccw'))}:null;
-  const moreBtn=scCoachRung<3?'<button class="big-btn coach-more" onclick="scCoachMore()">Show me a bit more 👇</button>':'';
+  const r=scCoachRung;
+  let face=null, arrow=null, disp;
+  if(r>=3){                                             /* cube + arrow track the CURRENT little step */
+    const chunks=scCoachGetChunks();
+    const m0=chunks[Math.min(scCoachChunk,chunks.length-1)][0];
+    face=m0[0];
+    arrow={face:face,dir:(m0.length===1?'cw':(m0[1]==='2'?'half':'ccw'))};
+    disp=scCoachChunkState();
+  }else{
+    disp=scCoachDispState();
+  }
+  const moreBtn=r<3?'<button class="big-btn coach-more" onclick="scCoachMore()">Show me a bit more 👇</button>':'';
   return '<div class="card">'+
     '<div class="coach-head">🧭 Cube Coach</div>'+
     scCoachBannerHTML()+
-    scCube3DHTML(168,scCoachRung>=3?face:null,scCoachDispState(),arrow)+
+    scCube3DHTML(168,face,disp,arrow)+
     scCoachStyleToggleHTML()+
     scCoachHintCard()+
     moreBtn+
@@ -1973,15 +2048,126 @@ function scCoachHTML(){
     '<div class="step-nav" style="margin-top:8px"><button class="big-btn alt" onclick="scShowPreview()">← Back to my cube</button></div>'+
   '</div>';
 }
-function scCoachMore(){if(scCoachRung<3){scCoachRung++;scRender();window.scrollTo(0,0);}}
-function scCoachSetStyle(st){scCoachStyle=st;save('cc_coach_style',st);scCoachRung=scCoachStartRung();scRender();}
+function scCoachMore(){if(scCoachRung<3){scCoachRung++;scCoachOpenMove=-1;scRender();window.scrollTo(0,0);}}
+function scCoachSetStyle(st){scCoachStyle=st;save('cc_coach_style',st);scCoachRung=scCoachStartRung();scCoachChunk=0;scCoachOpenMove=-1;scRender();}
 function scCoachDidIt(){
   const nx=scCoachNextGi(scCoachGi);
   if(nx<0){celebrate('🎉','YOU DID IT!','You solved your cube — high five! ✋');scMode='intro';scRender();return;}
-  scCoachGi=nx; scCoachRung=scCoachStartRung(); scCoachSyncIdx();
+  scCoachGi=nx; scCoachRung=scCoachStartRung(); scCoachChunk=0; scCoachChunksCache=null; scCoachOpenMove=-1; scCoachSyncIdx();
   scSetGuideView(scGroups[nx].moves[0][0]); scRender(); window.scrollTo(0,0);
 }
 function scCoachToGuide(){scCoachSyncIdx();sc3d.mode='entry';scSetGuideView(scFlat[scMoveIdx].m[0]);scMode='guide';scRender();window.scrollTo(0,0);}
+
+/* =========================================================================
+   COACH ANIMATION CUBE (ca*) — tap a turn in a "little step" and watch a real
+   26-cubie 3D cube PERFORM that turn, on his cube's current state. Reuses the
+   home mascot's proven turn engine (hcTurn technique: animate rotate3d about the
+   cube centre, then commit the identical integer matrix — pieces never drift).
+   Built SEPARATELY from the mascot (own ca3d* globals; mascot untouched).
+   Key trick: a turn acts on POSITIONS, so we paint each cubie's stickers by
+   POSITION from the current facelets (cbToFacelet) — no need to track true piece
+   identity — then spinning the layer lands every sticker exactly where the real
+   move puts it. Frame matches Solve-My-Cube: x right, y DOWN, z out; up=U(yellow)
+   down=D(white) right=R(orange) left=L(red) front=F(green) back=B(blue). The
+   cell->position mapping below is DERIVED from the solver's own cF/eFc facelet
+   tables (verified) and the move directions are verified against cbApply. ===== */
+const CA_TURN_MS=620;
+const CA_FACE_BASE={U:0,R:9,F:18,D:27,L:36,B:45};        /* facelet-string offset per face */
+const CA_FACE_DIR ={U:'y-',R:'x+',F:'z+',D:'y+',L:'x-',B:'z-'};  /* which cubie face-normal a face's stickers sit on */
+const CA_FACE_NVEC={U:[0,-1,0],R:[1,0,0],F:[0,0,1],D:[0,1,0],L:[-1,0,0],B:[0,0,-1]};
+/* cell 0..8 (row-major) on face -> [x,y,z] world position (derived from cF/eFc) */
+function caCellPos(face,i){const c=i%3, r=(i/3)|0;
+  if(face==='U')return [c-1,-1,r-1];
+  if(face==='D')return [c-1,1,1-r];
+  if(face==='F')return [c-1,r-1,1];
+  if(face==='B')return [1-c,r-1,-1];
+  if(face==='R')return [1,r-1,1-c];
+  return [-1,r-1,c-1];   /* L */
+}
+/* quarter-turn about a face, verified below: {axis,layer,dir} where dir feeds hcTurn/HCX-Y-Z */
+const CA_MOVE={
+  U:{axis:1,layer:-1,dir:-1}, D:{axis:1,layer:1,dir:1},
+  R:{axis:0,layer:1,dir:1}, L:{axis:0,layer:-1,dir:-1},
+  F:{axis:2,layer:1,dir:1}, B:{axis:2,layer:-1,dir:-1}
+};
+const CA_COL2LET={}; ['U','R','F','D','L','B'].forEach(function(L){CA_COL2LET[SCOLOR[L]]=L;});
+let ca3dCubies=[], ca3dCubeEl=null, ca3dTimer=null;
+function caVecEq(a,b){return a[0]===b[0]&&a[1]===b[1]&&a[2]===b[2];}
+/* facelet string -> {posKey:{dirKey:colorHex}} */
+function caStickers(facelet){const m={};
+  for(const F of ['U','R','F','D','L','B']){const base=CA_FACE_BASE[F], dir=CA_FACE_DIR[F];
+    for(let i=0;i<9;i++){const p=caCellPos(F,i).join(','); (m[p]||(m[p]={}))[dir]=SCOLOR[facelet[base+i]];}}
+  return m;}
+/* build the 26 cubies from a facelet string (DOM if ca3dCubeEl is set, else data-only for tests) */
+function caBuild(facelet){
+  ca3dCubies=[]; const st=caStickers(facelet); if(ca3dCubeEl) ca3dCubeEl.innerHTML='';
+  for(let x=-1;x<=1;x++)for(let y=-1;y<=1;y++)for(let z=-1;z<=1;z++){
+    if(!x&&!y&&!z)continue;
+    const home=[x,y,z], smap=st[home.join(',')]||{}, faces=[];
+    const el=ca3dCubeEl?document.createElement('div'):null; if(el)el.className='hc3d-cubie';
+    for(const fd of HC_FACES){
+      const exterior=(home[0]*fd.n[0]+home[1]*fd.n[1]+home[2]*fd.n[2])===1;
+      const col=exterior?(smap[fd.k]||HC_DARK):HC_DARK;
+      let fe=null;
+      if(el){fe=document.createElement('div');fe.className='hc3d-face';fe.style.background=col;fe.style.transform=fd.t;fe.style.filter='brightness('+hcBright(fd.n).toFixed(2)+')';el.appendChild(fe);}
+      faces.push({el:fe,n:fd.n.slice(),col:col});
+    }
+    const R=[[1,0,0],[0,1,0],[0,0,1]];
+    if(el){el.style.transform=hcBase(home,R);ca3dCubeEl.appendChild(el);}
+    ca3dCubies.push({el,home,pos:home.slice(),R,faces});
+  }
+}
+/* synchronous commit of one quarter turn (used by the animation's setTimeout AND by tests) */
+function caCommit(axis,layer,dir){
+  const base=[HCX,HCY,HCZ][axis], Rt=dir>0?base:hcTps(base);
+  for(const c of ca3dCubies){ if(c.pos[axis]!==layer)continue;
+    c.R=hcMul(Rt,c.R); c.pos=hcMulV(Rt,c.pos);
+    for(const f of c.faces){f.n=hcMulV(Rt,f.n); if(f.el)f.el.style.filter='brightness('+hcBright(f.n).toFixed(2)+')';}
+    if(c.el){c.el.style.transition='none'; c.el.style.transform=hcBase(c.pos,c.R);}
+  }
+}
+/* read the cube's current stickers back into a 54-char facelet string (verification + safety) */
+function caFaceletFromCube(){const out=new Array(54);
+  for(const F of ['U','R','F','D','L','B']){const base=CA_FACE_BASE[F], nv=CA_FACE_NVEC[F];
+    for(let i=0;i<9;i++){const p=caCellPos(F,i), c=ca3dCubies.find(cu=>caVecEq(cu.pos,p));
+      const f=c&&c.faces.find(ff=>caVecEq(ff.n,nv)); out[base+i]=f?CA_COL2LET[f.col]:'?';}}
+  return out.join('');}
+/* animate one quarter turn (copy of hcTurn on ca3d* globals) */
+function caTurn(axis,layer,dir,dur,done){
+  const axv=axis===0?'1,0,0':axis===1?'0,1,0':'0,0,1', ang=(dir*90)+'deg';
+  const movers=ca3dCubies.filter(c=>c.pos[axis]===layer);
+  for(const c of movers){c.el.style.transition='transform '+dur+'ms cubic-bezier(.45,.05,.3,1)';
+    c.el.style.transform='rotate3d('+axv+','+ang+') '+hcBase(c.pos,c.R);}
+  ca3dTimer=setTimeout(()=>{ caCommit(axis,layer,dir); if(ca3dCubeEl)void ca3dCubeEl.offsetWidth; if(done)done(); },dur+24);
+}
+function caStop(){ if(ca3dTimer){clearTimeout(ca3dTimer);ca3dTimer=null;} }
+/* the facelet state RIGHT BEFORE move #j of the current little step */
+function caPreStateFacelet(j){
+  const chunks=scCoachGetChunks(), bite=chunks[Math.min(scCoachChunk,chunks.length-1)];
+  let moves=scFlat.filter(x=>x.gi<scCoachGi).map(x=>x.m);
+  for(let i=0;i<scCoachChunk && i<chunks.length;i++) moves=moves.concat(chunks[i]);
+  for(let k=0;k<j;k++) moves.push(bite[k]);
+  return cbToFacelet(cbApply(cbClone(scState0),moves));
+}
+/* a gentle face-on-ish view per face so the spinning layer reads clearly */
+const CA_VIEW={U:[58,-26],D:[-58,-26],F:[-18,-24],B:[-18,156],R:[-18,-66],L:[-18,66]};
+function caMoveDirs(mv){const spec=CA_MOVE[mv[0]]; const suf=mv.length>1?mv[1]:'';
+  if(suf==='2')return [spec.dir,spec.dir]; if(suf==="'")return [-spec.dir]; return [spec.dir];}
+/* build the cube at the pre-move state, orient face-on, then play the move (looping controls in the UI) */
+function caPlayOpenMove(){
+  caStop();
+  if(scMode!=='coach'||scCoachRung<3||scCoachOpenMove<0)return;
+  const stage=document.getElementById('caStage'); ca3dCubeEl=document.getElementById('caCube');
+  if(!stage||!ca3dCubeEl)return;
+  const chunks=scCoachGetChunks(), bite=chunks[Math.min(scCoachChunk,chunks.length-1)];
+  const j=Math.min(scCoachOpenMove,bite.length-1), mv=bite[j], spec=CA_MOVE[mv[0]];
+  caBuild(caPreStateFacelet(j));
+  const v=CA_VIEW[mv[0]]||[-18,-30];
+  ca3dCubeEl.style.transform='rotateX('+v[0]+'deg) rotateY('+v[1]+'deg)';
+  const dirs=caMoveDirs(mv);
+  ca3dTimer=setTimeout(function play(n){ caTurn(spec.axis,spec.layer,dirs[n],CA_TURN_MS,()=>{ if(n<dirs.length-1) ca3dTimer=setTimeout(()=>play(n+1),40); }); },420,0);
+}
+function scCoachTapMove(j){ scCoachOpenMove=(scCoachOpenMove===j?-1:j); scRender(); }
 
 /* ---------- init ---------- */
 /* home mascot: a draggable-free pure-CSS 3D cube that turns one face every few seconds,

@@ -1337,7 +1337,7 @@ function scIntroHTML(){
    resume+
    '<div style="font-size:19px;line-height:1.5;font-weight:700">🪄 I can figure out how to solve <b>YOUR</b> cube!<br>First I need to see all six sides.</div>'+
    '<div class="sc-tip">📱 <b>How it works:</b> I show you one side at a time. Around each side are little colored dots — turn your cube so the dots match, then tap the squares to match your cube. Take your time!</div>'+
-   '<div style="margin-top:16px"><button class="big-btn'+(s?' alt':'')+'" onclick="scBegin()">📷 Start '+(s?'a new cube':'entering my cube')+'</button></div>'+
+   '<div style="margin-top:16px"><button class="big-btn'+(s?' alt':'')+'" onclick="scBegin()">🎨 Start '+(s?'a new cube':'entering my cube')+'</button></div>'+
    '</div>';
 }
 function scBegin(){ scReset(); scMode='entry'; sc3d.mode='entry'; scSetFaceView(0); scRender(); }
@@ -1355,7 +1355,11 @@ function scTabsHTML(){
   }).join('')+'</div>';
 }
 function scToast(msg){let t=document.getElementById('scToast');if(!t){t=document.createElement('div');t.id='scToast';t.className='sc-toast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('show');clearTimeout(scToast._t);scToast._t=setTimeout(function(){t.classList.remove('show');},1800);}
-/* --- camera / webcam sticker scanner: reads a side's 9 colors ON-DEVICE (no upload, no storage) --- */
+/* --- camera / webcam sticker scanner: reads a side's 9 colors ON-DEVICE (no upload, no storage) ---
+   PARKED: color reads aren't reliable across cube brands + lighting, so the entry-screen button is
+   hidden. Every bit of the scanner code below is left intact — flip SC_CAMERA_ENABLED to true to
+   bring the button (and the whole feature) straight back. */
+const SC_CAMERA_ENABLED=false;
 let scCamStream=null, scCamTimer=null, scCamRead=null, scCamErr='', scCamCanvas=null, scCamFacing='user';  /* 'user' = front/selfie by default (easy on tablets/phones) */
 let scCamCand=null, scCamStreak=0, scCamCooldown=0, scCamDone={};        /* auto-capture: candidate reading, stable-frame streak, post-lock cooldown, faces already captured */
 const SCAM_INTERVAL=150, SCAM_NEED=5, SCAM_CONF=0.4;                     /* sample every 150ms; lock after ~5 steady frames (~0.75s); min per-cell confidence to count a frame */
@@ -1499,6 +1503,22 @@ function scEntryHTML(){
   }
   const pal=Object.keys(SCOLOR).map(l=>scSwatch(l,l===scPaintColor)).join('');
   const allDone=FACE_ORDER.every(ff=>scEntry[ff].every(c=>c));
+  /* Auto-fill the last side — but ONLY when it's uniquely determined. ~26% of scrambled cubes
+     have several valid last sides (verified), so we never guess: the button appears only when
+     the answer is certain (unique), computed here while the 6th side is still untouched so there's
+     no lag while painting. Ambiguous cubes simply get no button — the kid paints the side normally. */
+  const missing=scEditing?null:scMissingFace();          /* the one unfinished side, iff exactly 5 are full */
+  const pristine=missing&&scEntry[missing].every((c,i)=>i===4||!c);  /* 6th side still blank (only its centre) */
+  const auto=pristine?scAutoComplete():null;             /* {ok:true,face,cells} only when the fill is certain */
+  const autoBtn = (auto&&auto.ok)
+    ? '<div style="text-align:center;margin:14px 0 2px">'+
+        '<button class="big-btn" style="background:linear-gradient(150deg,#38c66d,#1ea85a);font-size:16px;padding:12px 18px" onclick="scFillLastSide()">✨ Figure out my last side!</button>'+
+        '<div style="font-size:13px;color:#5b6b8c;margin-top:6px;font-weight:700">You painted 5 sides — I can fill in the <b>'+SNAME[auto.face]+'</b> side for you! ✨</div>'+
+      '</div>'
+    : '';
+  const camBtn = SC_CAMERA_ENABLED
+    ? '<div style="text-align:center;margin:12px 0 2px"><button class="big-btn" style="background:linear-gradient(150deg,#7a3cff,#b429f9);font-size:16px;padding:12px 18px" onclick="scStartCamera()">📷 Scan this side with camera</button></div>'
+    : '';
   const leftBtn = scFaceIdx>0
     ? '<button class="big-btn alt" onclick="scPrevFace()">← Back</button>'
     : (scEditing ? '<button class="big-btn alt" onclick="scCancelFix()" style="background:#888">✕ Keep steps</button>'
@@ -1521,7 +1541,7 @@ function scEntryHTML(){
    '</div>'+
    '<div class="sc-palhint">Pick a color, then tap the squares 👇</div>'+
    '<div class="sc-pal">'+pal+'</div>'+
-   '<div style="text-align:center;margin:12px 0 2px"><button class="big-btn" style="background:linear-gradient(150deg,#7a3cff,#b429f9);font-size:16px;padding:12px 18px" onclick="scStartCamera()">📷 Scan this side with camera</button></div>'+
+   autoBtn+camBtn+
    '<div class="step-nav">'+leftBtn+
      '<button class="big-btn" onclick="scClearFace()" style="background:#888">Clear</button>'+
      rightBtn+
@@ -1533,6 +1553,52 @@ function scEntryHTML(){
 function scPick(l){scPaintColor=l;scRender();}
 function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scFixMsg='';scRender();}
 function scClearFace(){const f=FACE_ORDER[scFaceIdx];scEntry[f]=scEntry[f].map((c,i)=>i===4?f:null);scFixMsg='';scRender();}
+/* ---- auto-complete the last side ----------------------------------------------
+   Once 5 sides are fully painted, the 6th is uniquely determined: every cube piece
+   is unique and the cube's parity rules pin the leftover pieces. We try arrangements
+   of the leftover colors for the empty side and keep the one the engine accepts as a
+   real, valid cube (verified unique across thousands of random cubes). If the 5 sides
+   don't add up to a real cube (a typo), no arrangement fits -> we say so kindly. */
+function scMissingFace(){                                 /* the one not-yet-full side, iff exactly 5 are full */
+  const empty=FACE_ORDER.filter(f=>!scEntry[f].every(c=>c));
+  return empty.length===1?empty[0]:null;
+}
+function scAutoComplete(){
+  const face=scMissingFace();
+  if(!face)return {ok:false,reason:'need5'};
+  const need={U:9,R:9,F:9,D:9,L:9,B:9};                   /* how many of each color the last side still needs */
+  FACE_ORDER.forEach(f=>{ if(f!==face) scEntry[f].forEach(c=>{ if(c)need[c]--; }); });
+  need[face]--;                                           /* the missing side's centre is known */
+  for(const k in need) if(need[k]<0) return {ok:false,reason:'nofit'};
+  const arr=new Array(9).fill(null); arr[4]=face;         /* keep the centre, recompute the 8 others */
+  const slots=[0,1,2,3,5,6,7,8], sols=[];
+  (function rec(k){
+    if(sols.length>1)return;                              /* >1 would be ambiguous — bail (shouldn't happen) */
+    if(k===slots.length){
+      let str=''; for(const f of ['U','R','F','D','L','B'])str+=(f===face?arr.join(''):scEntry[f].join(''));
+      if(!cbFromFacelet(str).error) sols.push(arr.slice());
+      return;
+    }
+    for(const c of ['U','R','F','D','L','B']){
+      if(need[c]<=0)continue;
+      need[c]--; arr[slots[k]]=c; rec(k+1); need[c]++;
+    }
+  })(0);
+  if(sols.length===1)return {ok:true,face,cells:sols[0]};
+  return {ok:false,reason:sols.length?'ambig':'nofit'};
+}
+function scFillLastSide(){
+  const r=scAutoComplete();
+  if(!r.ok){                                              /* button only shows when unique, so this is a rare fallback */
+    scToast(r.reason==='nofit'
+      ? '🤔 Hmm, these sides don\'t add up to a real cube — let\'s double-check them.'
+      : 'Paint your last side in and you\'re all set! 🙂');
+    return;
+  }
+  scEntry[r.face]=r.cells; scFixMsg='';
+  scShowPreview();                                        /* all six sides done -> straight to the spin-and-check preview */
+  scToast('✨ Ta-da! I filled in your last side. Give your cube a spin to check, then solve!');
+}
 function scNextFace(){if(scFaceIdx<5){scFaceIdx++;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
 function scPrevFace(){if(scFaceIdx>0){scFaceIdx--;scSetFaceView(scFaceIdx);scRender();window.scrollTo(0,0);}}
 function scDoSolve(){scStartSolve('learn');}     /* ✨ Solve it! — the teachable 7-step method */

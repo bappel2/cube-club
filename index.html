@@ -137,6 +137,31 @@
     box-shadow:0 6px 0 rgba(0,0,0,.15)}
   .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
   .now-playing{font-weight:800;color:#fff;margin-top:12px;font-size:18px;text-align:center;text-shadow:0 2px 0 rgba(0,0,0,.15)}
+  /* Featured "Star Cuber" pages */
+  .creator-row-h{margin:16px 0 12px;font-size:20px}
+  .creator-cards{display:flex;gap:12px}
+  .creator-card{flex:1;min-width:0;border:none;border-radius:20px;padding:16px 10px;cursor:pointer;color:#fff;
+    display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;
+    box-shadow:0 6px 0 rgba(0,0,0,.16);transition:transform .05s}
+  .creator-card:active{transform:translateY(2px)}
+  .creator-card .cc-emoji{font-size:38px;line-height:1}
+  .creator-card .cc-name{font-size:20px;font-weight:800}
+  .creator-card .cc-sub{font-size:12.5px;font-weight:600;opacity:.95;line-height:1.2}
+  .creator-card .cc-go{margin-top:5px;font-size:12px;font-weight:800;background:rgba(255,255,255,.24);border-radius:999px;padding:3px 11px}
+  .creator-hero{display:flex;align-items:center;gap:14px;border-radius:20px;padding:16px 18px;margin-bottom:14px;color:#fff;box-shadow:0 6px 0 rgba(0,0,0,.16)}
+  .creator-hero .ch-emoji{font-size:44px;line-height:1;flex-shrink:0}
+  .creator-hero .ch-txt{min-width:0}
+  .creator-hero .ch-txt b{display:block;font-size:23px;line-height:1.1}
+  .creator-hero .ch-txt small{display:block;font-size:14px;opacity:.93;margin-top:3px;line-height:1.3}
+  .creator-h3{margin:4px 0 12px;font-size:20px}
+  .playall{display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
+    border:none;border-radius:16px;padding:14px 18px;color:#fff;font-weight:700;
+    background:linear-gradient(150deg,#38c66d,#1ea85a);box-shadow:0 5px 0 rgba(0,0,0,.15)}
+  .playall:active{transform:translateY(2px)}
+  .playall .pa-ic{font-size:28px;flex-shrink:0}
+  .playall .pa-tx{min-width:0}
+  .playall .pa-tx b{display:block;font-size:18px}
+  .playall .pa-tx small{display:block;font-size:13px;opacity:.9;margin-top:2px;line-height:1.3}
   .note{background:#fff8e0;border:2px dashed #ffcf3f;border-radius:14px;padding:12px 14px;font-size:14px;color:#6b5400;line-height:1.5}
 
   /* CUBE GUIDE */
@@ -338,8 +363,10 @@
   <section class="screen" id="videos">
     <h2 class="title">📺 Watch Videos</h2>
     <div id="videoPlayer" style="display:none"></div>
+    <div id="creatorPage" style="display:none"></div>
+    <div id="creatorRow"></div>
     <div class="card" id="videoArea"></div>
-    <div class="note" id="videoNote">👦➡️👨 <b>For grown-ups:</b> These are the only videos your kid can reach — they play right here <b>inside the app</b>, so he never lands on the open YouTube feed. To change the list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each entry needs a title, a channel name, and the video <b>id</b> (the part after <b>v=</b> in a youtube.com/watch?v=<b>ID</b> link).</div>
+    <div class="note" id="videoNote">👦➡️👨 <b>For grown-ups:</b> These are the only videos your kid can reach — they play right here <b>inside the app</b>, so he never lands on the open YouTube feed. The ✨ <b>Star Cuber</b> pages (SoupTimmy &amp; Tingman) show each channel's most-popular videos plus a <b>Play all</b> of their newest uploads — all inside this same player. To change the hand-picked list, open <b>index.html</b> in any text editor and edit the <b>VIDEOS</b> list near the top of the script. Each entry needs a title, a channel name, and the video <b>id</b> (the part after <b>v=</b> in a youtube.com/watch?v=<b>ID</b> link).</div>
   </section>
 
   <!-- CUBE GUIDE -->
@@ -392,11 +419,6 @@ const VIDEOS = [
   { group:"⭐ Learn to Solve", title:"Solve It in 10 Minutes",            by:"J Perm",            id:"7Ron6MN45LY" },
   { group:"⭐ Learn to Solve", title:"So Easy a 3-Year-Old Can Do It",     by:"Kevin Gittemeier",  id:"9spDGBeWl1o" },
   { group:"⭐ Learn to Solve", title:"The Easiest Tutorial Ever",          by:"Leila Gharani",     id:"0Ti5CKsQLts" },
-  { group:"🥣 SoupTimmy",      title:"Solving Every BIG Cube!",            by:"SoupTimmy",         id:"ODKtBl-2N68" },
-  { group:"🥣 SoupTimmy",      title:"The Impossible Cube!",               by:"SoupTimmy",         id:"lgyjxAXzra4" },
-  { group:"🧩 Tingman",        title:"Solve It & Remember the Steps",      by:"Tingman",           id:"F68LxcmBw4E" },
-  { group:"🧩 Tingman",        title:"Solve It One-Handed!",               by:"Tingman",           id:"rw1ByNSIkOI" },
-  { group:"🧩 Tingman",        title:"This Will Inspire You!",             by:"Tingman",           id:"ngLcZTuq5Rs" },
   { group:"🚀 Get Faster",     title:"Finger Tricks: How to Turn Fast",    by:"CubeHead",          id:"KWe4SNIMtrg" },
   { group:"🚀 Get Faster",     title:"Finger Tricks Tutorial",            by:"J Perm",            id:"wLuVF9Dk3AQ" },
   { group:"🎪 Cool Tricks",    title:"Top 10 Cube Patterns",              by:"Tingman",           id:"vtY7hOIAj6E" },
@@ -404,10 +426,50 @@ const VIDEOS = [
   { group:"😄 Just for Fun",   title:"Solve It in Under 60 Seconds (ft. SoupTimmy)", by:"Hafu Go", id:"eoXd1oaZSFI" },
 ];
 
+/* ---------- Featured "Star Cuber" channels ----------
+   The two biggest kid-friendly cubing YouTubers each get their own page: a Most
+   Popular grid (hand-verified, ranked by real view counts, every video checked
+   family-safe AND embeddable) plus a "Play all" that streams the channel's newest
+   uploads. Everything plays in the same locked-down in-app player.
+   - uploads = the channel's uploads playlist (the UC… channel id with UC->UU); it
+     plays newest-first and auto-updates, so "Newest Videos" never goes stale.
+   - popular[] view counts (v) are a snapshot taken July 2026; to refresh, re-check
+     the channel and update the numbers/order. t = short kid title, id = the v= id. */
+const CREATORS = [
+  { id:"souptimmy", name:"SoupTimmy", emoji:"🥣", blurb:"Cube art & giant puzzles!",
+    grad:"linear-gradient(150deg,#ff8a00,#e23b3b)", uploads:"UUpp1GoykvTBuPiZt3FiFHjg",
+    popular:[
+      {t:"Weirdest Cube Products",              v:"21M",  id:"AgD1vXdqe0g"},
+      {t:"Building a Collection Room!",         v:"16M",  id:"7DKpnkHnuMA"},
+      {t:"What I Spent at a Cubing Store",      v:"13M",  id:"ggPqN1DUy0Y"},
+      {t:"Buying Returned Rubik's Cubes",       v:"12M",  id:"BbupdWxEXso"},
+      {t:"Organizing My Puzzles!",              v:"7.8M", id:"PIMe8GVPEtE"},
+      {t:"Solving My Biggest Fear",             v:"6.7M", id:"-qU4qyI4z-4"},
+      {t:"I Went to a 1×1 Competition",         v:"6.5M", id:"xrXVnOsvBxc"},
+      {t:"Can I Get a Job at a Cubing Store?",  v:"5.9M", id:"Q47ynKfRjwc"},
+      {t:"Pranking a Beginner's Teacher",       v:"5.8M", id:"_ewxGIfFG-Y"},
+      {t:"Solving Every Big Cube (1×1–21×21)",  v:"5.8M", id:"ODKtBl-2N68"}
+    ] },
+  { id:"tingman", name:"Tingman", emoji:"🧩", blurb:"Wholesome cubing with his kids!",
+    grad:"linear-gradient(150deg,#2b7fff,#6a5cff)", uploads:"UU9Ht_7PQ1G4UIPhjSkF-phw",
+    popular:[
+      {t:"How to Solve & Remember the Steps",    v:"1.9M", id:"F68LxcmBw4E"},
+      {t:"Geometry Dash Captured My Cubes",      v:"1.3M", id:"Gl0UbDaNlEY"},
+      {t:"Top 10 Cube Patterns",                 v:"614K", id:"vtY7hOIAj6E"},
+      {t:"A Cubing Record 8 Years in the Making",v:"444K", id:"0r9JAw70Kqc"},
+      {t:"If I Can't Solve This, My Kids Win!",  v:"228K", id:"GVRav3lEUOs"},
+      {t:"This Cubing Video Will Inspire You",   v:"212K", id:"ngLcZTuq5Rs"},
+      {t:"10 Puzzles I CAN'T Solve",             v:"176K", id:"Z961LM1Tydc"},
+      {t:"Unboxing 22 Crazy Puzzles",            v:"173K", id:"DwIzfNcvefY"},
+      {t:"Reacting to Funny Cubing Memes",       v:"171K", id:"6aIkLmIcxFU"},
+      {t:"I Flew to Texas for One Question",     v:"157K", id:"KHm28JsvunI"}
+    ] }
+];
+
 /* ---------- navigation ---------- */
 function go(id){
   if(document.getElementById('games').classList.contains('active') && id!=='games') stopGame();
-  if(document.getElementById('videos').classList.contains('active') && id!=='videos') closeVideo();
+  if(document.getElementById('videos').classList.contains('active') && id!=='videos') stopVideoPlayer();
   if(document.getElementById('fixer').classList.contains('active') && id!=='fixer') scCamStop();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -417,6 +479,7 @@ function go(id){
   if(id==='cubes') renderCubes();
   if(id==='games') showGamesMenu();
   if(id==='fixer') scEnter();
+  if(id==='videos') videosHome();
 }
 
 /* ---------- storage helpers ---------- */
@@ -556,36 +619,98 @@ function renderVideos(){
   Object.keys(groups).forEach(g=>{
     const wrap=document.createElement('div');wrap.className='vid-group';
     const h=document.createElement('h3');h.textContent=g;wrap.appendChild(h);
-    groups[g].forEach(v=>{
-      const b=document.createElement('button');b.className='vid';
-      b.onclick=()=>playVideo(v.id,v.title);
-      b.innerHTML='<span class="thumb"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/'+esc(v.id)+'/mqdefault.jpg"><span class="pbadge">▶</span></span>'+
-        '<span class="meta"><span class="vt">'+esc(v.title)+'</span><span class="vby">'+esc(v.by)+'</span></span>';
-      wrap.appendChild(b);
-    });
+    groups[g].forEach(v=> wrap.appendChild(vidCard(v.id,v.title,v.by)) );
     area.appendChild(wrap);
   });
+}
+/* One tappable video card, shared by the group list and the creator pages. Built as
+   a DOM node with a closure handler so titles with apostrophes never break markup. */
+function vidCard(id,title,sub){
+  const b=document.createElement('button');b.className='vid';
+  b.onclick=()=>playVideo(id,title);
+  b.innerHTML='<span class="thumb"><img loading="lazy" alt="" src="https://i.ytimg.com/vi/'+esc(id)+'/mqdefault.jpg"><span class="pbadge">▶</span></span>'+
+    '<span class="meta"><span class="vt">'+esc(title)+'</span><span class="vby">'+esc(sub)+'</span></span>';
+  return b;
+}
+/* ---------- Featured "Star Cuber" pages (SoupTimmy, Tingman) ----------
+   Tap a creator to open their page: a view-ranked Most Popular grid + a "Play all"
+   of their newest uploads. Everything plays in the same locked-down in-app player,
+   so the child never reaches the open YouTube feed. */
+let vidCreator=null;                                    // creator page we're on (null = main list)
+function creatorById(id){ return CREATORS.find(c=>c.id===id); }
+function renderCreators(){
+  const row=document.getElementById('creatorRow');if(!row)return;
+  row.innerHTML='<h3 class="creator-row-h">✨ Star Cubers — tap to see their videos</h3>'+
+    '<div class="creator-cards">'+CREATORS.map(c=>
+      '<button class="creator-card" style="background:'+c.grad+'" onclick="openCreator(\''+c.id+'\')">'+
+        '<span class="cc-emoji">'+c.emoji+'</span><span class="cc-name">'+esc(c.name)+'</span>'+
+        '<span class="cc-sub">'+esc(c.blurb)+'</span>'+
+        '<span class="cc-go">▶ '+c.popular.length+' top videos</span></button>').join('')+'</div>';
+}
+function openCreator(id){
+  const c=creatorById(id);if(!c)return;
+  vidCreator=id;
+  const page=document.getElementById('creatorPage');
+  page.innerHTML=
+    '<button class="big-btn alt" style="margin-bottom:12px" onclick="closeCreator()">← All videos</button>'+
+    '<div class="creator-hero" style="background:'+c.grad+'"><span class="ch-emoji">'+c.emoji+'</span>'+
+      '<span class="ch-txt"><b>'+esc(c.name)+'</b><small>'+esc(c.blurb)+'</small></span></div>'+
+    '<div class="card"><h3 class="creator-h3">⭐ Most Popular</h3><div id="creatorPop"></div>'+
+      '<h3 class="creator-h3" style="margin-top:20px">🆕 Newest Videos</h3>'+
+      '<button class="playall" onclick="playPlaylist(\''+c.uploads+'\',\''+esc(c.name)+'\')">'+
+        '<span class="pa-ic">▶</span><span class="pa-tx"><b>Play all — newest first</b>'+
+        '<small>'+esc(c.name)+'’s latest uploads, always up to date</small></span></button></div>';
+  const grid=page.querySelector('#creatorPop');
+  c.popular.forEach(v=> grid.appendChild(vidCard(v.id,v.t,'🔥 '+v.v+' views')) );
+  document.getElementById('videoPlayer').style.display='none';
+  document.getElementById('creatorRow').style.display='none';
+  document.getElementById('videoArea').style.display='none';
+  document.getElementById('videoNote').style.display='none';
+  page.style.display='block';window.scrollTo(0,0);
+}
+function closeCreator(){ videosHome();window.scrollTo(0,0); }
+/* Show the main videos list (creator row + groups). Also used on entering the screen. */
+function videosHome(){
+  vidCreator=null;
+  const p=document.getElementById('videoPlayer');p.innerHTML='';p.style.display='none';
+  document.getElementById('creatorPage').style.display='none';
+  document.getElementById('creatorRow').style.display='block';
+  document.getElementById('videoArea').style.display='block';
+  document.getElementById('videoNote').style.display='block';
 }
 /* Locked-down inline player: youtube-nocookie, related videos limited to the
    same channel (rel=0). Playback stays in the app; removing the iframe stops it. */
 function playVideo(id,title){
-  const src='https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+
-    '?rel=0&modestbranding=1&playsinline=1&autoplay=1';
+  showPlayer('https://www.youtube-nocookie.com/embed/'+encodeURIComponent(id)+
+    '?rel=0&modestbranding=1&playsinline=1&autoplay=1', title);
+}
+/* Same locked-down player, streaming a whole playlist (a creator's uploads = newest
+   first). Verified that videoseries?list=UU… embeds fine inside an iframe. */
+function playPlaylist(listId,name){
+  showPlayer('https://www.youtube-nocookie.com/embed/videoseries?list='+encodeURIComponent(listId)+
+    '&rel=0&modestbranding=1&playsinline=1&autoplay=1', name+' — newest first');
+}
+function showPlayer(src,title){
   document.getElementById('videoPlayer').innerHTML=
-    '<button class="big-btn alt" style="margin-bottom:12px" onclick="closeVideo()">← Back to videos</button>'+
+    '<button class="big-btn alt" style="margin-bottom:12px" onclick="closeVideo()">← Back</button>'+
     '<div class="video-frame"><iframe src="'+src+'" title="'+esc(title)+'" '+
       'allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>'+
     '<div class="now-playing">▶ '+esc(title)+'</div>';
   document.getElementById('videoPlayer').style.display='block';
+  document.getElementById('creatorRow').style.display='none';
+  document.getElementById('creatorPage').style.display='none';
   document.getElementById('videoArea').style.display='none';
   document.getElementById('videoNote').style.display='none';
   window.scrollTo(0,0);
 }
+/* Back from the player: return to the creator page if we came from one, else the list. */
 function closeVideo(){
-  const p=document.getElementById('videoPlayer');
-  p.innerHTML='';p.style.display='none';                 // dropping the iframe stops playback
-  document.getElementById('videoArea').style.display='block';
-  document.getElementById('videoNote').style.display='block';
+  document.getElementById('videoPlayer').innerHTML='';    // dropping the iframe stops playback
+  if(vidCreator) openCreator(vidCreator); else videosHome();
+}
+/* Called by go() when leaving the Videos screen — just kill playback. */
+function stopVideoPlayer(){
+  const p=document.getElementById('videoPlayer');if(p){p.innerHTML='';p.style.display='none';}
 }
 
 /* ============================================================
@@ -1642,7 +1767,7 @@ function renderHomeArt(){
   if(bg)bg.innerHTML=[{t:'-46px',r:'-54px',w:172,rot:12},{b:'-72px',l:'-48px',w:214,rot:-10},{t:'42%',l:'-80px',w:138,rot:7},{t:'12%',r:'-62px',w:120,rot:-6}]
     .map(o=>'<div class="bc" style="'+(o.t?'top:'+o.t+';':'')+(o.b?'bottom:'+o.b+';':'')+(o.l?'left:'+o.l+';':'')+(o.r?'right:'+o.r+';':'')+'width:'+o.w+'px;transform:rotate('+o.rot+'deg)">'+cubeSVG(3)+'</div>').join('');
 }
-renderTimes();renderStep();renderVideos();renderCubes();newScramble();renderHomeArt();
+renderTimes();renderStep();renderVideos();renderCreators();renderCubes();newScramble();renderHomeArt();
 </script>
 </body>
 </html>

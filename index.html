@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cube Club</title>
+<meta name="theme-color" content="#6a5cff">
+<link rel="icon" type="image/png" sizes="180x180" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cube Club">
 <style>
   :root{
     --white:#f8f8f8; --yellow:#ffd500; --red:#e23b3b; --orange:#ff8a00;
@@ -597,10 +603,11 @@ document.addEventListener('keyup',e=>{
    Enter = next, Backspace = fix, arrows = move. Only while the entry screen is showing. */
 document.addEventListener('keydown',e=>{
   if(scMode!=='entry' || !document.getElementById('fixer').classList.contains('active'))return;
+  if(e.ctrlKey||e.metaKey||e.altKey)return;               /* never swallow browser shortcuts (Ctrl+R, Cmd+R, …) */
   const t=e.target; if(t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
   const k=e.key, up=(k.length===1)?k.toUpperCase():k;
   if(SCKEY[up]){ e.preventDefault(); scSetColor(SCKEY[up]); return; }
-  if(k==='Backspace'){ e.preventDefault(); scCursorStep(-1); scEntry[FACE_ORDER[scFaceIdx]][scCursor]=null; scFixMsg=''; scRender(); return; }
+  if(k==='Backspace'){ e.preventDefault(); if(SC_ORDER.indexOf(scCursor)>0)scCursorStep(-1); scEntry[FACE_ORDER[scFaceIdx]][scCursor]=null; scFixMsg=''; scRender(); return; }   /* clamp at the first square — no wrap-around */
   if(k==='Enter'){ e.preventDefault();
     const allIn=FACE_ORDER.every(ff=>scEntry[ff].every(c=>c));
     if(scEntry[FACE_ORDER[scFaceIdx]].every(c=>c)){ if(allIn && !scEditing) scShowPreview(); else if(!scEditing) scOnFaceDone(); }
@@ -980,7 +987,7 @@ function closeCubeDetail(){
 }
 
 /* ============================================================
-   CUBE GAMES
+   PLAY CUBE
    ============================================================ */
 /* PLAY CUBE — an interactive virtual 3x3 the kid can turn, scramble, undo, and watch
    solve itself. Reuses the home mascot's piece-based turn engine helpers (hcMul/hcMulV/
@@ -1487,7 +1494,7 @@ function scSwatch(letter){const kc=(letter==='D')?'#555':'#fff';return '<button 
 function scDot(letter){return '<span class="sc-dot" style="background:'+SCOLOR[letter]+'"></span>';}
 function scEntryHTML(){
   const f=FACE_ORDER[scFaceIdx], nb=NEIGH[f], cells=scEntry[f];
-  const filled=cells.filter((c,i)=>i===4||c).length; const done=cells.every(c=>c);
+  const done=cells.every(c=>c);
   let grid='';
   for(let i=0;i<9;i++){
     if(i===4){grid+='<div class="sc-center" style="background:'+SCOLOR[f]+'"></div>';continue;}
@@ -1546,8 +1553,6 @@ function scEntryHTML(){
    (scEditing?'<button class="big-btn" style="background:linear-gradient(150deg,#38c66d,#2b7fff);width:100%;box-sizing:border-box;margin-top:10px" onclick="scSolveAgain()"'+(allDone?'':' disabled')+'>✅ Fixed it — solve again!</button>':'')+
    '</div>';
 }
-function scPick(l){scPaintColor=l;scRender();}
-function scPaint(i){if(i===4)return;scEntry[FACE_ORDER[scFaceIdx]][i]=scPaintColor;scFixMsg='';scRender();}
 /* ---- auto-advancing entry: a "cursor" square moves through the side; tapping a colour (or
    pressing its letter) fills the cursor square and hops to the next. Tap any square to fix it. --- */
 function scFirstEmpty(f){const a=scEntry[f];for(const i of SC_ORDER)if(!a[i])return i;return SC_ORDER[0];}
